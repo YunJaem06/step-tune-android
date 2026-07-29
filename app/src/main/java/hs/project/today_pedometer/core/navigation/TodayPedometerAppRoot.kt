@@ -26,7 +26,7 @@ fun TodayPedometerAppRoot() {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = backStackEntry?.destination
     val currentRoutes = currentDestination?.hierarchy?.mapNotNull { it.route }?.toSet().orEmpty()
-    val homeRoute = TopLevelDestination.Home.route
+    val homeRoute = TopLevelDestination.Progress.route
     val isHomeDestination = homeRoute in currentRoutes
     val isMainDestination = TopLevelDestination.items.any { destination ->
         destination.route in currentRoutes
@@ -52,7 +52,7 @@ fun TodayPedometerAppRoot() {
                                 if (!selected) {
                                     navController.navigate(destination.route) {
                                         popUpTo(homeRoute) {
-                                            saveState = true
+                                            this.saveState = true
                                         }
                                         launchSingleTop = true
                                         restoreState = true
@@ -95,7 +95,7 @@ fun TodayPedometerAppRoot() {
                     }
                 )
             }
-            composable(TopLevelDestination.Home.route) {
+            composable(TopLevelDestination.Progress.route) {
                 HomeRoute()
             }
             composable(TopLevelDestination.Stats.route) {

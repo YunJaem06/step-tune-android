@@ -53,5 +53,9 @@
     <string name="stats_loading">통계를 계산하는 중...</string>
     <string name="stats_steps_unit">보</string>
     <string name="stats_days_unit">일</string>
+    <string name="tracking_notification_channel_name">걸음 수 추적</string>
+    <string name="tracking_notification_title">오늘의 걸음 수</string>
+    <string name="tracking_notification_steps">현재 %1$d걸음</string>
+    <string name="tracking_notification_sensor_unavailable">걸음 수 센서를 사용할 수 없습니다.</string>
 </resources>
 

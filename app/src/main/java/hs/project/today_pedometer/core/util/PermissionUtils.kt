@@ -8,6 +8,11 @@ import androidx.core.content.ContextCompat
 
 object PermissionUtils {
 
+    fun hasTrackingPermissions(context: Context): Boolean {
+        return hasActivityRecognitionPermission(context) &&
+            hasNotificationPermission(context)
+    }
+
     fun hasActivityRecognitionPermission(context: Context): Boolean {
         return if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
             true
