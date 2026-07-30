@@ -6,15 +6,22 @@ import androidx.core.content.ContextCompat
 
 object StepTrackingServiceController {
 
-    fun start(context: Context) {
+    fun start(context: Context): Boolean {
         val applicationContext = context.applicationContext
         val intent = Intent(applicationContext, StepTrackingService::class.java)
-        ContextCompat.startForegroundService(applicationContext, intent)
+        return try {
+            ContextCompat.startForegroundService(applicationContext, intent)
+            true
+        } catch (_: SecurityException) {
+            false
+        } catch (_: IllegalStateException) {
+            false
+        }
     }
 
-    fun stop(context: Context) {
+    fun stop(context: Context): Boolean {
         val applicationContext = context.applicationContext
         val intent = Intent(applicationContext, StepTrackingService::class.java)
-        applicationContext.stopService(intent)
+        return applicationContext.stopService(intent)
     }
 }

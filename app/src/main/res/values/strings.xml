@@ -23,8 +23,8 @@
     <string name="settings_options_section">알림 및 서비스</string>
     <string name="settings_reminder_toggle">리마인더 알림 사용</string>
     <string name="settings_reminder_toggle_description">걷기 알림이나 요약 알림에 사용할 기본 옵션입니다.</string>
-    <string name="settings_auto_start_toggle">앱 실행 시 추적 서비스 자동 시작</string>
-    <string name="settings_auto_start_toggle_description">걸음 수집 서비스 연결 시 기본 동작으로 사용할 예정입니다.</string>
+    <string name="settings_auto_start_toggle">걸음 추적 서비스 자동 시작</string>
+    <string name="settings_auto_start_toggle_description">권한이 허용된 경우 앱 실행과 기기 부팅 후 걸음 추적을 시작합니다.</string>
     <string name="progress_title">오늘 걸음</string>
     <string name="progress_goal_label">목표</string>
     <string name="progress_remaining_label">남은 걸음</string>

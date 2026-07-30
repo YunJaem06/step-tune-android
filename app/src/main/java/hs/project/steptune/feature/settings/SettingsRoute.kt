@@ -30,12 +30,12 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import hs.project.steptune.R
 import hs.project.steptune.core.util.PermissionUtils
+import hs.project.steptune.service.StepTrackingServiceController
 import hs.project.steptune.ui.theme.StepTuneTheme
 
 @Composable
-fun SettingsRoute(
-    viewModel: SettingsViewModel = hiltViewModel()
-) {
+fun SettingsRoute() {
+    val viewModel: SettingsViewModel = hiltViewModel()
     val context = LocalContext.current
     val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
 
@@ -48,7 +48,14 @@ fun SettingsRoute(
         onHeightChanged = viewModel::onHeightChanged,
         onWeightChanged = viewModel::onWeightChanged,
         onReminderNotificationsChanged = viewModel::onReminderNotificationsChanged,
-        onAutoStartTrackingChanged = viewModel::onAutoStartTrackingChanged,
+        onAutoStartTrackingChanged = { enabled ->
+            viewModel.onAutoStartTrackingChanged(enabled)
+            if (enabled && PermissionUtils.hasTrackingPermissions(context)) {
+                StepTrackingServiceController.start(context)
+            } else if (!enabled) {
+                StepTrackingServiceController.stop(context)
+            }
+        },
         onSaveProfile = viewModel::saveProfile,
         onOpenAppSettings = {
             val intent = Intent(

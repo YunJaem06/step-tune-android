@@ -26,15 +26,20 @@ import hs.project.steptune.core.util.DateFormatter
 import hs.project.steptune.data.local.preferences.StepTrackingState
 import hs.project.steptune.data.local.preferences.StepTrackingStateDataSource
 import hs.project.steptune.domain.model.DailyProgress
+import hs.project.steptune.domain.model.StepMetricsCalculator
 import hs.project.steptune.domain.model.UserPreferences
 import hs.project.steptune.domain.repository.PedometerRepository
 import hs.project.steptune.domain.repository.SettingsRepository
 import javax.inject.Inject
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -45,6 +50,8 @@ class StepTrackingService : Service(), SensorEventListener {
     @Inject lateinit var trackingStateDataSource: StepTrackingStateDataSource
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val dependencyStateReady = CompletableDeferred<Unit>()
+    private val stepReadings = Channel<Int>(capacity = Channel.CONFLATED)
     private lateinit var sensorManager: SensorManager
     private var stepCounterSensor: Sensor? = null
 
@@ -61,7 +68,8 @@ class StepTrackingService : Service(), SensorEventListener {
         super.onCreate()
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
         stepCounterSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
-        observeDependencies()
+        initializeDependencyState()
+        consumeStepReadings()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -96,9 +104,7 @@ class StepTrackingService : Service(), SensorEventListener {
 
     override fun onSensorChanged(event: SensorEvent?) {
         val rawSensorSteps = event?.values?.firstOrNull()?.toInt() ?: return
-        serviceScope.launch {
-            persistStepReading(rawSensorSteps)
-        }
+        stepReadings.trySend(rawSensorSteps)
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
@@ -106,53 +112,80 @@ class StepTrackingService : Service(), SensorEventListener {
     override fun onDestroy() {
         sensorManager.unregisterListener(this)
         stopForeground(STOP_FOREGROUND_REMOVE)
+        stepReadings.close()
         serviceScope.cancel()
         super.onDestroy()
     }
 
-    private fun observeDependencies() {
+    private fun initializeDependencyState() {
+        serviceScope.launch {
+            try {
+                currentPreferences = settingsRepository.observePreferences().first()
+                currentTrackingState = trackingStateDataSource.state.first()
+                dependencyStateReady.complete(Unit)
+            } catch (error: Exception) {
+                dependencyStateReady.completeExceptionally(error)
+                stopSelf()
+            }
+        }
+
         serviceScope.launch {
             settingsRepository.observePreferences().collectLatest { preferences ->
                 currentPreferences = preferences
             }
         }
+    }
 
+    private fun consumeStepReadings() {
         serviceScope.launch {
-            trackingStateDataSource.state.collectLatest { trackingState ->
-                currentTrackingState = trackingState
+            dependencyStateReady.await()
+            for (rawSensorSteps in stepReadings) {
+                try {
+                    persistStepReading(rawSensorSteps)
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (_: Exception) {
+                    stopSelf()
+                    break
+                }
             }
         }
     }
 
     private suspend fun persistStepReading(rawSensorSteps: Int) {
         val today = DateFormatter.today()
-        var trackingState = currentTrackingState
+        val previousState = currentTrackingState
+        val needsExistingRecord = previousState.trackingDate != today ||
+            previousState.baselineSensorSteps == null ||
+            rawSensorSteps < previousState.baselineSensorSteps
+        val existingTodaySteps = if (needsExistingRecord) {
+            pedometerRepository.getDailyProgress(today)?.steps ?: 0
+        } else {
+            lastSavedSteps
+        }
+        val calculation = StepCountCalculator.calculate(
+            date = today,
+            rawSensorSteps = rawSensorSteps,
+            previousState = previousState,
+            existingTodaySteps = existingTodaySteps
+        )
 
-        if (trackingState.trackingDate != today || trackingState.baselineSensorSteps == null) {
-            trackingState = StepTrackingState(
-                trackingDate = today,
-                baselineSensorSteps = rawSensorSteps,
-                offsetSteps = 0
+        if (calculation.trackingState != previousState) {
+            val newState = calculation.trackingState
+            trackingStateDataSource.updateState(
+                trackingDate = requireNotNull(newState.trackingDate),
+                baselineSensorSteps = requireNotNull(newState.baselineSensorSteps),
+                offsetSteps = newState.offsetSteps
             )
-            trackingStateDataSource.updateState(today, rawSensorSteps, 0)
-            currentTrackingState = trackingState
-        } else if (rawSensorSteps < trackingState.baselineSensorSteps) {
-            val carriedSteps = pedometerRepository.getDailyProgress(today)?.steps ?: 0
-            trackingState = StepTrackingState(
-                trackingDate = today,
-                baselineSensorSteps = rawSensorSteps,
-                offsetSteps = carriedSteps
-            )
-            trackingStateDataSource.updateState(today, rawSensorSteps, carriedSteps)
-            currentTrackingState = trackingState
+            currentTrackingState = newState
         }
 
-        val baselineSensorSteps = trackingState.baselineSensorSteps ?: rawSensorSteps
-        val steps = (trackingState.offsetSteps + (rawSensorSteps - baselineSensorSteps))
-            .coerceAtLeast(trackingState.offsetSteps)
-
-        val distanceMeters = steps * (currentPreferences.stepLengthCm / 100f)
-        val calories = calculateCalories(
+        val steps = calculation.steps
+        val distanceMeters = StepMetricsCalculator.distanceMeters(
+            steps = steps,
+            stepLengthCm = currentPreferences.stepLengthCm
+        )
+        val calories = StepMetricsCalculator.calories(
             distanceMeters = distanceMeters,
             weightKg = currentPreferences.weightKg
         )
@@ -169,11 +202,6 @@ class StepTrackingService : Service(), SensorEventListener {
 
         lastSavedSteps = steps
         updateNotification(sensorAvailable = true)
-    }
-
-    private fun calculateCalories(distanceMeters: Float, weightKg: Int): Float {
-        val distanceKm = distanceMeters / 1_000f
-        return distanceKm * weightKg * 0.57f
     }
 
     private fun registerStepCounterSensor() {
@@ -210,7 +238,7 @@ class StepTrackingService : Service(), SensorEventListener {
 
     private fun startForegroundWithNotification(sensorAvailable: Boolean): Boolean {
         val notification = buildNotification(sensorAvailable)
-        val serviceType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        val serviceType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             ServiceInfo.FOREGROUND_SERVICE_TYPE_HEALTH
         } else {
             0
@@ -219,6 +247,9 @@ class StepTrackingService : Service(), SensorEventListener {
             ServiceCompat.startForeground(this, NOTIFICATION_ID, notification, serviceType)
             true
         } catch (_: SecurityException) {
+            stopSelf()
+            false
+        } catch (_: IllegalArgumentException) {
             stopSelf()
             false
         }

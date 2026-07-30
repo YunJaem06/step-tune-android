@@ -22,20 +22,21 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import hs.project.steptune.core.util.PermissionUtils
+import hs.project.steptune.service.StepTrackingServiceController
 import hs.project.steptune.ui.theme.StepTuneTheme
 
 @Composable
 fun OnboardingRoute(
-    onFinished: () -> Unit,
-    viewModel: OnboardingViewModel = hiltViewModel()
+    onFinished: () -> Unit
 ) {
+    val onboardingViewModel: OnboardingViewModel = hiltViewModel()
     val context = LocalContext.current
-    val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
+    val uiState = onboardingViewModel.uiState.collectAsStateWithLifecycle().value
 
     val activityPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) {
-        viewModel.updatePermissionState(
+        onboardingViewModel.updatePermissionState(
             activityRecognitionGranted = PermissionUtils.hasActivityRecognitionPermission(context),
             notificationGranted = PermissionUtils.hasNotificationPermission(context)
         )
@@ -44,14 +45,14 @@ fun OnboardingRoute(
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) {
-        viewModel.updatePermissionState(
+        onboardingViewModel.updatePermissionState(
             activityRecognitionGranted = PermissionUtils.hasActivityRecognitionPermission(context),
             notificationGranted = PermissionUtils.hasNotificationPermission(context)
         )
     }
 
     LaunchedEffect(Unit) {
-        viewModel.updatePermissionState(
+        onboardingViewModel.updatePermissionState(
             activityRecognitionGranted = PermissionUtils.hasActivityRecognitionPermission(context),
             notificationGranted = PermissionUtils.hasNotificationPermission(context)
         )
@@ -70,7 +71,10 @@ fun OnboardingRoute(
             }
         },
         onContinue = {
-            viewModel.completeOnboarding(onFinished)
+            onboardingViewModel.completeOnboarding {
+                StepTrackingServiceController.start(context)
+                onFinished()
+            }
         }
     )
 }

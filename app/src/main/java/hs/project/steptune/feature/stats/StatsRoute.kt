@@ -31,9 +31,8 @@ import hs.project.steptune.domain.model.StatsSummary
 import hs.project.steptune.ui.theme.StepTuneTheme
 
 @Composable
-fun StatsRoute(
-    viewModel: StatsViewModel = hiltViewModel()
-) {
+fun StatsRoute() {
+    val viewModel: StatsViewModel = hiltViewModel()
     val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
     ReportScreen(
         uiState = uiState,

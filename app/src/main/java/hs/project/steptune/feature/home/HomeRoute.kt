@@ -30,9 +30,8 @@ import hs.project.steptune.R
 import hs.project.steptune.ui.theme.StepTuneTheme
 
 @Composable
-fun HomeRoute(
-    viewModel: HomeViewModel = hiltViewModel()
-) {
+fun HomeRoute() {
+    val viewModel: HomeViewModel = hiltViewModel()
     val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
     HomeScreen(uiState = uiState)
 }
