@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "hs.project.today_pedometer"
+    namespace = "hs.project.steptune"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "hs.project.today_pedometer"
+        applicationId = "hs.project.steptune"
         minSdk = 24
         targetSdk = 36
         versionCode = 1

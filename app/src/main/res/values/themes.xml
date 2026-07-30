@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.Today_Pedometer" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.StepTune" parent="android:Theme.Material.Light.NoActionBar" />
 
-    <style name="Theme.Today_Pedometer.Splash" parent="Theme.SplashScreen">
+    <style name="Theme.StepTune.Splash" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/white</item>
         <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
-        <item name="postSplashScreenTheme">@style/Theme.Today_Pedometer</item>
+        <item name="postSplashScreenTheme">@style/Theme.StepTune</item>
     </style>
 </resources>

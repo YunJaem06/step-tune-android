@@ -1,5 +1,5 @@
-﻿<resources>
-    <string name="app_name">Today_Pedometer</string>
+<resources>
+    <string name="app_name">StepTune</string>
     <string name="settings_title">설정</string>
     <string name="settings_description">목표와 신체 정보를 저장하고, 권한 상태와 알림/서비스 옵션을 확인할 수 있어요.</string>
     <string name="settings_profile_section">기본 정보</string>

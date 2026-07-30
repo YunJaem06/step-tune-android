@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Today_Pedometer"
+rootProject.name = "StepTune"
 include(":app")
  
