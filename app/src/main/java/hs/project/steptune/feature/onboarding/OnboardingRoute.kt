@@ -9,19 +9,29 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import hs.project.steptune.R
 import hs.project.steptune.core.util.PermissionUtils
+import hs.project.steptune.domain.model.MusicGenre
+import hs.project.steptune.domain.model.MusicMood
+import hs.project.steptune.feature.musicpreference.MusicPreferenceSelector
 import hs.project.steptune.service.StepTrackingServiceController
 import hs.project.steptune.ui.theme.StepTuneTheme
 
@@ -29,14 +39,14 @@ import hs.project.steptune.ui.theme.StepTuneTheme
 fun OnboardingRoute(
     onFinished: () -> Unit
 ) {
-    val onboardingViewModel: OnboardingViewModel = hiltViewModel()
+    val viewModel: OnboardingViewModel = hiltViewModel()
     val context = LocalContext.current
-    val uiState = onboardingViewModel.uiState.collectAsStateWithLifecycle().value
+    val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
 
     val activityPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) {
-        onboardingViewModel.updatePermissionState(
+        viewModel.updatePermissionState(
             activityRecognitionGranted = PermissionUtils.hasActivityRecognitionPermission(context),
             notificationGranted = PermissionUtils.hasNotificationPermission(context)
         )
@@ -45,42 +55,69 @@ fun OnboardingRoute(
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) {
-        onboardingViewModel.updatePermissionState(
+        viewModel.updatePermissionState(
             activityRecognitionGranted = PermissionUtils.hasActivityRecognitionPermission(context),
             notificationGranted = PermissionUtils.hasNotificationPermission(context)
         )
     }
 
     LaunchedEffect(Unit) {
-        onboardingViewModel.updatePermissionState(
+        viewModel.updatePermissionState(
             activityRecognitionGranted = PermissionUtils.hasActivityRecognitionPermission(context),
             notificationGranted = PermissionUtils.hasNotificationPermission(context)
         )
     }
 
-    OnboardingScreen(
-        uiState = uiState,
-        onRequestActivityRecognition = {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                activityPermissionLauncher.launch(Manifest.permission.ACTIVITY_RECOGNITION)
+    when (uiState.step) {
+        OnboardingStep.PERMISSIONS -> PermissionOnboardingScreen(
+            uiState = uiState,
+            onRequestActivityRecognition = {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    activityPermissionLauncher.launch(Manifest.permission.ACTIVITY_RECOGNITION)
+                }
+            },
+            onRequestNotifications = {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+            },
+            onContinue = {
+                viewModel.continueFromPermissions {
+                    if (uiState.autoStartTrackingEnabled) {
+                        StepTrackingServiceController.start(context)
+                    }
+                    onFinished()
+                }
             }
-        },
-        onRequestNotifications = {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        )
+
+        OnboardingStep.MUSIC_PREFERENCES -> MusicPreferencesOnboardingScreen(
+            uiState = uiState,
+            onGenreToggled = viewModel::toggleGenre,
+            onMoodToggled = viewModel::toggleMood,
+            onPrevious = viewModel::showPermissions,
+            onComplete = {
+                viewModel.completeOnboarding {
+                    if (uiState.autoStartTrackingEnabled) {
+                        StepTrackingServiceController.start(context)
+                    }
+                    onFinished()
+                }
+            },
+            onSkip = {
+                viewModel.skipMusicPreferences {
+                    if (uiState.autoStartTrackingEnabled) {
+                        StepTrackingServiceController.start(context)
+                    }
+                    onFinished()
+                }
             }
-        },
-        onContinue = {
-            onboardingViewModel.completeOnboarding {
-                StepTrackingServiceController.start(context)
-                onFinished()
-            }
-        }
-    )
+        )
+    }
 }
 
 @Composable
-fun OnboardingScreen(
+fun PermissionOnboardingScreen(
     uiState: OnboardingUiState,
     onRequestActivityRecognition: () -> Unit,
     onRequestNotifications: () -> Unit,
@@ -90,32 +127,128 @@ fun OnboardingScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text("Welcome", style = MaterialTheme.typography.headlineMedium)
-        Text("To count steps reliably, the app needs a couple of permissions before entering the main screen.")
+        Text(
+            text = stringResource(R.string.onboarding_welcome_title),
+            style = MaterialTheme.typography.headlineMedium
+        )
+        Text(
+            text = stringResource(R.string.onboarding_permission_description),
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
 
         PermissionCard(
-            title = "Activity recognition",
+            title = stringResource(R.string.onboarding_activity_permission),
             granted = uiState.activityRecognitionGranted,
-            actionLabel = "Grant permission",
+            actionLabel = stringResource(R.string.onboarding_grant_permission),
             onAction = onRequestActivityRecognition
         )
 
         PermissionCard(
-            title = "Notifications",
+            title = stringResource(R.string.onboarding_notification_permission),
             granted = uiState.notificationGranted,
-            actionLabel = "Allow notifications",
+            actionLabel = stringResource(R.string.onboarding_allow_notifications),
             onAction = onRequestNotifications
         )
 
+        if (uiState.saveFailed) {
+            Text(
+                text = stringResource(R.string.onboarding_save_failed),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
+
         Button(
             onClick = onContinue,
-            enabled = uiState.allRequiredGranted && !uiState.saving,
+            enabled = uiState.allRequiredGranted && !uiState.isLoading && !uiState.saving,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(if (uiState.saving) "Preparing..." else "Continue")
+            Text(
+                if (uiState.saving) {
+                    stringResource(R.string.onboarding_saving)
+                } else {
+                    stringResource(R.string.onboarding_continue)
+                }
+            )
+        }
+    }
+}
+
+@Composable
+fun MusicPreferencesOnboardingScreen(
+    uiState: OnboardingUiState,
+    onGenreToggled: (MusicGenre) -> Unit,
+    onMoodToggled: (MusicMood) -> Unit,
+    onPrevious: () -> Unit,
+    onComplete: () -> Unit,
+    onSkip: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(
+            text = stringResource(R.string.onboarding_music_title),
+            style = MaterialTheme.typography.headlineMedium
+        )
+        Text(
+            text = stringResource(R.string.onboarding_music_description),
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        if (uiState.isLoading) {
+            CircularProgressIndicator()
+        } else {
+            MusicPreferenceSelector(
+                uiState = uiState.musicPreferences,
+                onGenreToggled = onGenreToggled,
+                onMoodToggled = onMoodToggled,
+                enabled = !uiState.saving
+            )
+        }
+
+        if (uiState.saveFailed) {
+            Text(
+                text = stringResource(R.string.onboarding_save_failed),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
+
+        Button(
+            onClick = onComplete,
+            enabled = !uiState.isLoading && !uiState.saving,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                if (uiState.saving) {
+                    stringResource(R.string.onboarding_saving)
+                } else {
+                    stringResource(R.string.onboarding_complete)
+                }
+            )
+        }
+        OutlinedButton(
+            onClick = onSkip,
+            enabled = !uiState.isLoading && !uiState.saving,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(stringResource(R.string.onboarding_skip))
+        }
+        TextButton(
+            onClick = onPrevious,
+            enabled = !uiState.saving,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(stringResource(R.string.onboarding_previous))
         }
     }
 }
@@ -135,7 +268,13 @@ private fun PermissionCard(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(title, style = MaterialTheme.typography.titleMedium)
-            Text(if (granted) "Granted" else "Required before entering the app")
+            Text(
+                if (granted) {
+                    stringResource(R.string.onboarding_permission_granted)
+                } else {
+                    stringResource(R.string.onboarding_permission_required)
+                }
+            )
             if (!granted) {
                 Button(onClick = onAction) {
                     Text(actionLabel)
@@ -147,10 +286,10 @@ private fun PermissionCard(
 
 @Preview(showBackground = true)
 @Composable
-private fun OnboardingScreenPreview() {
+private fun PermissionOnboardingScreenPreview() {
     StepTuneTheme {
-        OnboardingScreen(
-            uiState = OnboardingUiState(),
+        PermissionOnboardingScreen(
+            uiState = OnboardingUiState(isLoading = false),
             onRequestActivityRecognition = {},
             onRequestNotifications = {},
             onContinue = {}
@@ -158,3 +297,20 @@ private fun OnboardingScreenPreview() {
     }
 }
 
+@Preview(showBackground = true)
+@Composable
+private fun MusicPreferencesOnboardingScreenPreview() {
+    StepTuneTheme {
+        MusicPreferencesOnboardingScreen(
+            uiState = OnboardingUiState(
+                step = OnboardingStep.MUSIC_PREFERENCES,
+                isLoading = false
+            ),
+            onGenreToggled = {},
+            onMoodToggled = {},
+            onPrevious = {},
+            onComplete = {},
+            onSkip = {}
+        )
+    }
+}

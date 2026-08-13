@@ -2,13 +2,19 @@ package hs.project.steptune.core.navigation
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -16,9 +22,9 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import hs.project.steptune.feature.home.HomeRoute
 import hs.project.steptune.feature.onboarding.OnboardingRoute
-import hs.project.steptune.feature.stats.StatsRoute
 import hs.project.steptune.feature.settings.SettingsRoute
 import hs.project.steptune.feature.splash.SplashRoute
+import hs.project.steptune.feature.stats.StatsRoute
 
 @Composable
 fun StepTuneAppRoot() {
@@ -41,9 +47,13 @@ fun StepTuneAppRoot() {
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
             if (isMainDestination) {
-                NavigationBar {
+                NavigationBar(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 0.dp
+                ) {
                     TopLevelDestination.items.forEach { destination ->
                         val selected = destination.route in currentRoutes
                         NavigationBarItem(
@@ -52,15 +62,27 @@ fun StepTuneAppRoot() {
                                 if (!selected) {
                                     navController.navigate(destination.route) {
                                         popUpTo(homeRoute) {
-                                            this.saveState = true
+                                            saveState = true
                                         }
                                         launchSingleTop = true
                                         restoreState = true
                                     }
                                 }
                             },
-                            icon = {},
-                            label = { Text(destination.label) }
+                            icon = {
+                                Icon(
+                                    painter = painterResource(destination.iconRes),
+                                    contentDescription = stringResource(destination.labelRes)
+                                )
+                            },
+                            label = { Text(stringResource(destination.labelRes)) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = MaterialTheme.colorScheme.primary,
+                                selectedTextColor = MaterialTheme.colorScheme.primary,
+                                indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         )
                     }
                 }

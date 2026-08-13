@@ -3,10 +3,15 @@ package hs.project.steptune.feature.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import hs.project.steptune.domain.model.MusicGenre
+import hs.project.steptune.domain.model.MusicMood
+import hs.project.steptune.domain.model.MusicPreferenceRules
 import hs.project.steptune.domain.usecase.ObserveUserPreferencesUseCase
 import hs.project.steptune.domain.usecase.SetAutoStartTrackingEnabledUseCase
 import hs.project.steptune.domain.usecase.SetReminderNotificationsEnabledUseCase
+import hs.project.steptune.domain.usecase.UpdateMusicPreferencesUseCase
 import hs.project.steptune.domain.usecase.UpdateProfileSettingsUseCase
+import hs.project.steptune.feature.musicpreference.MusicPreferenceSelectionUiState
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,7 +25,8 @@ class SettingsViewModel @Inject constructor(
     private val observeUserPreferencesUseCase: ObserveUserPreferencesUseCase,
     private val updateProfileSettingsUseCase: UpdateProfileSettingsUseCase,
     private val setReminderNotificationsEnabledUseCase: SetReminderNotificationsEnabledUseCase,
-    private val setAutoStartTrackingEnabledUseCase: SetAutoStartTrackingEnabledUseCase
+    private val setAutoStartTrackingEnabledUseCase: SetAutoStartTrackingEnabledUseCase,
+    private val updateMusicPreferencesUseCase: UpdateMusicPreferencesUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -72,6 +78,72 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun onGenreToggled(genre: MusicGenre) {
+        if (_uiState.value.isSavingMusicPreferences) return
+        _uiState.update { current ->
+            current.copy(
+                musicPreferences = current.musicPreferences.copy(
+                    selectedGenres = MusicPreferenceRules.toggleGenre(
+                        selectedGenres = current.musicPreferences.selectedGenres,
+                        genre = genre
+                    )
+                ),
+                musicPreferencesSaved = false,
+                musicPreferencesSaveFailed = false
+            )
+        }
+    }
+
+    fun onMoodToggled(mood: MusicMood) {
+        if (_uiState.value.isSavingMusicPreferences) return
+        _uiState.update { current ->
+            current.copy(
+                musicPreferences = current.musicPreferences.copy(
+                    selectedMoods = MusicPreferenceRules.toggleMood(
+                        selectedMoods = current.musicPreferences.selectedMoods,
+                        mood = mood
+                    )
+                ),
+                musicPreferencesSaved = false,
+                musicPreferencesSaveFailed = false
+            )
+        }
+    }
+
+    fun saveMusicPreferences() {
+        val selection = _uiState.value.musicPreferences
+        if (_uiState.value.isSavingMusicPreferences) return
+        _uiState.update {
+            it.copy(
+                isSavingMusicPreferences = true,
+                musicPreferencesSaved = false,
+                musicPreferencesSaveFailed = false
+            )
+        }
+        viewModelScope.launch {
+            runCatching {
+                updateMusicPreferencesUseCase(
+                    preferredGenres = selection.selectedGenres,
+                    preferredMoods = selection.selectedMoods
+                )
+            }.onSuccess {
+                _uiState.update {
+                    it.copy(
+                        isSavingMusicPreferences = false,
+                        musicPreferencesSaved = true
+                    )
+                }
+            }.onFailure {
+                _uiState.update {
+                    it.copy(
+                        isSavingMusicPreferences = false,
+                        musicPreferencesSaveFailed = true
+                    )
+                }
+            }
+        }
+    }
+
     fun saveProfile() {
         val current = uiState.value
         val dailyGoal = current.dailyGoalInput.toIntOrNull()
@@ -107,6 +179,10 @@ class SettingsViewModel @Inject constructor(
                     stepLengthInput = preferences.stepLengthCm.toString(),
                     heightInput = preferences.heightCm.toString(),
                     weightInput = preferences.weightKg.toString(),
+                    musicPreferences = MusicPreferenceSelectionUiState(
+                        selectedGenres = preferences.preferredGenres,
+                        selectedMoods = preferences.preferredMoods
+                    ),
                     reminderNotificationsEnabled = preferences.reminderNotificationsEnabled,
                     autoStartTrackingEnabled = preferences.autoStartTrackingEnabled,
                     isLoading = false,

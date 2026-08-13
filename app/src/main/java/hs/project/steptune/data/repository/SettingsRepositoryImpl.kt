@@ -1,6 +1,8 @@
 package hs.project.steptune.data.repository
 
 import hs.project.steptune.data.local.preferences.PedometerPreferencesDataSource
+import hs.project.steptune.domain.model.MusicGenre
+import hs.project.steptune.domain.model.MusicMood
 import hs.project.steptune.domain.model.UserPreferences
 import hs.project.steptune.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.Flow
@@ -20,15 +22,28 @@ class SettingsRepositoryImpl @Inject constructor(
                 stepLengthCm = it.stepLengthCm,
                 heightCm = it.heightCm,
                 weightKg = it.weightKg,
+                preferredGenres = it.preferredGenreKeys
+                    .mapNotNull { storageKey -> MusicGenre.fromStorageKey(storageKey) }
+                    .toSet(),
+                preferredMoods = it.preferredMoodKeys
+                    .mapNotNull { storageKey -> MusicMood.fromStorageKey(storageKey) }
+                    .toSet(),
                 reminderNotificationsEnabled = it.reminderNotificationsEnabled,
                 autoStartTrackingEnabled = it.autoStartTrackingEnabled,
-                onboardingCompleted = it.onboardingCompleted
+                onboardingCompleted = it.onboardingCompleted,
+                musicPreferencesOnboardingCompleted = it.musicPreferencesOnboardingCompleted
             )
         }
     }
 
-    override suspend fun updateOnboardingCompleted(completed: Boolean) {
-        preferencesDataSource.updateOnboardingCompleted(completed)
+    override suspend fun completeOnboarding(
+        preferredGenres: Set<MusicGenre>,
+        preferredMoods: Set<MusicMood>
+    ) {
+        preferencesDataSource.completeOnboarding(
+            preferredGenreKeys = preferredGenres.map { genre -> genre.storageKey }.toSet(),
+            preferredMoodKeys = preferredMoods.map { mood -> mood.storageKey }.toSet()
+        )
     }
 
     override suspend fun updateProfileSettings(
@@ -51,6 +66,16 @@ class SettingsRepositoryImpl @Inject constructor(
 
     override suspend fun updateAutoStartTrackingEnabled(enabled: Boolean) {
         preferencesDataSource.updateAutoStartTrackingEnabled(enabled)
+    }
+
+    override suspend fun updateMusicPreferences(
+        preferredGenres: Set<MusicGenre>,
+        preferredMoods: Set<MusicMood>
+    ) {
+        preferencesDataSource.updateMusicPreferences(
+            preferredGenreKeys = preferredGenres.map { genre -> genre.storageKey }.toSet(),
+            preferredMoodKeys = preferredMoods.map { mood -> mood.storageKey }.toSet()
+        )
     }
 }
 

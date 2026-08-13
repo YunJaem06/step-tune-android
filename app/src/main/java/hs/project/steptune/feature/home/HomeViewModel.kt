@@ -5,11 +5,14 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import hs.project.steptune.core.util.DateFormatter
 import hs.project.steptune.domain.usecase.GetTodayProgressUseCase
+import hs.project.steptune.domain.model.StatsPeriod
+import hs.project.steptune.domain.usecase.ObserveStatsOverviewUseCase
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,7 +25,8 @@ import javax.inject.Inject
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val getTodayProgressUseCase: GetTodayProgressUseCase
+    private val getTodayProgressUseCase: GetTodayProgressUseCase,
+    private val observeStatsOverviewUseCase: ObserveStatsOverviewUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -35,8 +39,15 @@ class HomeViewModel @Inject constructor(
     private fun observeTodayProgress() {
         viewModelScope.launch {
             currentDateFlow()
-                .flatMapLatest(getTodayProgressUseCase::invoke)
-                .collect { progress ->
+                .flatMapLatest { date ->
+                    combine(
+                        getTodayProgressUseCase(date),
+                        observeStatsOverviewUseCase(StatsPeriod.DAILY)
+                    ) { progress, overview ->
+                        progress to overview.records
+                    }
+                }
+                .collect { (progress, weeklyRecords) ->
                     _uiState.update {
                         it.copy(
                             date = progress.date,
@@ -44,6 +55,7 @@ class HomeViewModel @Inject constructor(
                             goal = progress.goal,
                             distanceMeters = progress.distanceMeters,
                             calories = progress.calories,
+                            weeklyRecords = weeklyRecords,
                             isLoading = false
                         )
                     }

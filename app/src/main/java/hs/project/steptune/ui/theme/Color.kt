@@ -2,30 +2,23 @@ package hs.project.steptune.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val StepBlack = Color(0xFF0F1115)
-val StepCharcoal = Color(0xFF171A21)
-val StepCard = Color(0xFF1E232B)
-val StepStroke = Color(0xFF303846)
-val StepGreen = Color(0xFF19C37D)
-val StepGreenDeep = Color(0xFF0EA66B)
-val StepGreenContainer = Color(0xFF123D2C)
-val StepLime = Color(0xFF8BE36B)
-val StepText = Color(0xFFF3F5F7)
-val StepTextMuted = Color(0xFFA7B0BA)
-val StepAmber = Color(0xFFF5B544)
-val StepAmberContainer = Color(0xFF3A2A12)
-val StepError = Color(0xFFFF6B6B)
+val StepPurple = Color(0xFF6267E8)
+val StepPurpleDark = Color(0xFF4E53C7)
+val StepLavender = Color(0xFFE8E9FF)
+val StepMint = Color(0xFF55BFA6)
+val StepMintSoft = Color(0xFFDDF5EE)
+val StepCoral = Color(0xFFFF967A)
 
-val ForestMist = StepText
-val ForestSurface = StepCharcoal
-val ForestSurfaceSoft = StepCard
-val ForestOutline = StepStroke
-val ForestInk = StepBlack
-val ForestCoal = StepCharcoal
-val ForestMuted = StepTextMuted
-val ForestPrimary = StepGreen
-val ForestPrimaryDark = StepGreenDeep
-val ForestLime = StepLime
-val ForestWarm = StepAmber
-val ForestWarmDark = StepAmber
-val ForestError = StepError
+val StepBackgroundLight = Color(0xFFF7F7FC)
+val StepSurfaceLight = Color(0xFFFFFFFF)
+val StepSurfaceSoftLight = Color(0xFFF0F1F8)
+val StepInk = Color(0xFF1B1B24)
+val StepMuted = Color(0xFF70717D)
+val StepOutlineLight = Color(0xFFD9DAE5)
+
+val StepBackgroundDark = Color(0xFF111219)
+val StepSurfaceDark = Color(0xFF191A23)
+val StepSurfaceSoftDark = Color(0xFF232531)
+val StepTextDark = Color(0xFFF4F3FB)
+val StepMutedDark = Color(0xFFB6B5C3)
+val StepOutlineDark = Color(0xFF3B3D4C)

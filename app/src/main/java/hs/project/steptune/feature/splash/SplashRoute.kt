@@ -32,6 +32,7 @@ fun SplashRoute(
         delay(400)
         if (
             currentPreferences.onboardingCompleted &&
+            currentPreferences.musicPreferencesOnboardingCompleted &&
             hasActivityPermission &&
             hasNotificationPermission
         ) {

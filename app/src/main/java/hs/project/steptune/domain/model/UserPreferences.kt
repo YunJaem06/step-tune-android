@@ -5,8 +5,11 @@ data class UserPreferences(
     val stepLengthCm: Int = 72,
     val heightCm: Int = 170,
     val weightKg: Int = 65,
+    val preferredGenres: Set<MusicGenre> = emptySet(),
+    val preferredMoods: Set<MusicMood> = emptySet(),
     val reminderNotificationsEnabled: Boolean = true,
     val autoStartTrackingEnabled: Boolean = true,
-    val onboardingCompleted: Boolean = false
+    val onboardingCompleted: Boolean = false,
+    val musicPreferencesOnboardingCompleted: Boolean = false
 )
 

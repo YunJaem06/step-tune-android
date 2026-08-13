@@ -1,11 +1,16 @@
 package hs.project.steptune.feature.home
 
+import androidx.compose.runtime.Immutable
+import hs.project.steptune.domain.model.StatsRecord
+
+@Immutable
 data class HomeUiState(
     val date: String = "",
     val steps: Int = 0,
     val goal: Int = 10_000,
     val distanceMeters: Float = 0f,
     val calories: Float = 0f,
+    val weeklyRecords: List<StatsRecord> = emptyList(),
     val isLoading: Boolean = true
 ) {
     val progressRatio: Float

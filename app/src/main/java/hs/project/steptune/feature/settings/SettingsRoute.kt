@@ -30,6 +30,9 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import hs.project.steptune.R
 import hs.project.steptune.core.util.PermissionUtils
+import hs.project.steptune.domain.model.MusicGenre
+import hs.project.steptune.domain.model.MusicMood
+import hs.project.steptune.feature.musicpreference.MusicPreferenceSelector
 import hs.project.steptune.service.StepTrackingServiceController
 import hs.project.steptune.ui.theme.StepTuneTheme
 
@@ -48,6 +51,8 @@ fun SettingsRoute() {
         onHeightChanged = viewModel::onHeightChanged,
         onWeightChanged = viewModel::onWeightChanged,
         onReminderNotificationsChanged = viewModel::onReminderNotificationsChanged,
+        onGenreToggled = viewModel::onGenreToggled,
+        onMoodToggled = viewModel::onMoodToggled,
         onAutoStartTrackingChanged = { enabled ->
             viewModel.onAutoStartTrackingChanged(enabled)
             if (enabled && PermissionUtils.hasTrackingPermissions(context)) {
@@ -57,6 +62,7 @@ fun SettingsRoute() {
             }
         },
         onSaveProfile = viewModel::saveProfile,
+        onSaveMusicPreferences = viewModel::saveMusicPreferences,
         onOpenAppSettings = {
             val intent = Intent(
                 Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
@@ -77,8 +83,11 @@ fun SettingScreen(
     onHeightChanged: (String) -> Unit,
     onWeightChanged: (String) -> Unit,
     onReminderNotificationsChanged: (Boolean) -> Unit,
+    onGenreToggled: (MusicGenre) -> Unit,
+    onMoodToggled: (MusicMood) -> Unit,
     onAutoStartTrackingChanged: (Boolean) -> Unit,
     onSaveProfile: () -> Unit,
+    onSaveMusicPreferences: () -> Unit,
     onOpenAppSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -162,6 +171,58 @@ fun SettingScreen(
                             stringResource(R.string.settings_saving)
                         } else {
                             stringResource(R.string.settings_save_profile)
+                        }
+                    )
+                }
+            }
+        }
+
+        Card {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.settings_music_section),
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = stringResource(R.string.settings_music_description),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                MusicPreferenceSelector(
+                    uiState = uiState.musicPreferences,
+                    onGenreToggled = onGenreToggled,
+                    onMoodToggled = onMoodToggled,
+                    enabled = !uiState.isSavingMusicPreferences
+                )
+                if (uiState.musicPreferencesSaved) {
+                    Text(
+                        text = stringResource(R.string.settings_music_preferences_saved),
+                        color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+                if (uiState.musicPreferencesSaveFailed) {
+                    Text(
+                        text = stringResource(R.string.settings_music_preferences_save_failed),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+                Button(
+                    onClick = onSaveMusicPreferences,
+                    enabled = uiState.canSaveMusicPreferences,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        if (uiState.isSavingMusicPreferences) {
+                            stringResource(R.string.settings_saving)
+                        } else {
+                            stringResource(R.string.settings_save_music_preferences)
                         }
                     )
                 }
@@ -309,8 +370,11 @@ private fun SettingScreenPreview() {
             onHeightChanged = {},
             onWeightChanged = {},
             onReminderNotificationsChanged = {},
+            onGenreToggled = {},
+            onMoodToggled = {},
             onAutoStartTrackingChanged = {},
             onSaveProfile = {},
+            onSaveMusicPreferences = {},
             onOpenAppSettings = {}
         )
     }
