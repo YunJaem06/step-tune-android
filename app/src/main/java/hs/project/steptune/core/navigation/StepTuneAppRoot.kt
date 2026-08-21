@@ -21,8 +21,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import hs.project.steptune.feature.home.HomeRoute
+import hs.project.steptune.feature.login.LoginRoute
 import hs.project.steptune.feature.onboarding.OnboardingRoute
 import hs.project.steptune.feature.settings.SettingsRoute
+import hs.project.steptune.feature.splash.PostLoginRoute
 import hs.project.steptune.feature.splash.SplashRoute
 import hs.project.steptune.feature.stats.StatsRoute
 
@@ -96,14 +98,32 @@ fun StepTuneAppRoot() {
         ) {
             composable(AppDestination.Splash.route) {
                 SplashRoute(
+                    onFinished = {
+                        navController.navigate(AppDestination.Login.route) {
+                            popUpTo(AppDestination.Splash.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
+            composable(AppDestination.Login.route) {
+                LoginRoute(
+                    onContinueWithoutLogin = {
+                        navController.navigate(AppDestination.PostLogin.route) {
+                            popUpTo(AppDestination.Login.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
+            composable(AppDestination.PostLogin.route) {
+                PostLoginRoute(
                     onNavigateToOnboarding = {
                         navController.navigate(AppDestination.Onboarding.route) {
-                            popUpTo(AppDestination.Splash.route) { inclusive = true }
+                            popUpTo(AppDestination.PostLogin.route) { inclusive = true }
                         }
                     },
                     onNavigateToMain = {
                         navController.navigate(homeRoute) {
-                            popUpTo(AppDestination.Splash.route) { inclusive = true }
+                            popUpTo(AppDestination.PostLogin.route) { inclusive = true }
                         }
                     }
                 )

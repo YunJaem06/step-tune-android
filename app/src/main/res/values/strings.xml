@@ -1,5 +1,13 @@
 <resources>
     <string name="app_name">StepTune</string>
+    <string name="login_title">걸음마다,\n당신다운 음악으로</string>
+    <string name="login_description">오늘의 활동과 기분을 바탕으로 산책에 어울리는 음악을 추천해드려요.</string>
+    <string name="login_feature_summary">걸음 기록 · 기분 분석 · 맞춤 플레이리스트를 한곳에서 만나보세요.</string>
+    <string name="login_continue_with_google">Google로 계속하기</string>
+    <string name="login_google_preparing_message">Google 로그인은 서버 인증 API와 OAuth 설정 후 연결됩니다.</string>
+    <string name="login_or">또는</string>
+    <string name="login_continue_without_account">로그인 없이 둘러보기</string>
+    <string name="login_terms_notice">계속하면 StepTune의 이용약관 및 개인정보 처리방침에 동의하는 것으로 간주됩니다.</string>
     <string name="navigation_today">오늘</string>
     <string name="navigation_stats">통계</string>
     <string name="navigation_settings">설정</string>
