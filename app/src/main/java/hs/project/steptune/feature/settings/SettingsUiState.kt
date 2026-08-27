@@ -5,6 +5,7 @@ import hs.project.steptune.feature.musicpreference.MusicPreferenceSelectionUiSta
 
 @Immutable
 data class SettingsUiState(
+    val nickName: String = "",
     val dailyGoalInput: String = "",
     val stepLengthInput: String = "",
     val heightInput: String = "",
@@ -18,7 +19,8 @@ data class SettingsUiState(
     val hasInvalidNumberError: Boolean = false,
     val isSavingMusicPreferences: Boolean = false,
     val musicPreferencesSaved: Boolean = false,
-    val musicPreferencesSaveFailed: Boolean = false
+    val musicPreferencesSaveFailed: Boolean = false,
+    val isLoggingOut: Boolean = false
 ) {
     val canSaveProfile: Boolean
         get() = listOf(dailyGoalInput, stepLengthInput, heightInput, weightInput)

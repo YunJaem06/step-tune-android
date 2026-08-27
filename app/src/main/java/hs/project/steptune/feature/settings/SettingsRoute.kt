@@ -16,10 +16,12 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -28,6 +30,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.credentials.ClearCredentialStateRequest
+import androidx.credentials.CredentialManager
 import hs.project.steptune.R
 import hs.project.steptune.core.util.PermissionUtils
 import hs.project.steptune.domain.model.MusicGenre
@@ -35,12 +39,32 @@ import hs.project.steptune.domain.model.MusicMood
 import hs.project.steptune.feature.musicpreference.MusicPreferenceSelector
 import hs.project.steptune.service.StepTrackingServiceController
 import hs.project.steptune.ui.theme.StepTuneTheme
+import kotlinx.coroutines.CancellationException
 
 @Composable
-fun SettingsRoute() {
+fun SettingsRoute(
+    onLoggedOut: () -> Unit
+) {
     val viewModel: SettingsViewModel = hiltViewModel()
     val context = LocalContext.current
     val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
+
+    LaunchedEffect(viewModel, onLoggedOut) {
+        viewModel.events.collect { event ->
+            if (event == SettingsEvent.LoggedOut) {
+                try {
+                    CredentialManager.create(context).clearCredentialState(
+                        ClearCredentialStateRequest()
+                    )
+                } catch (exception: CancellationException) {
+                    throw exception
+                } catch (_: Exception) {
+                    // 로컬 세션은 이미 삭제됐으므로 로그인 화면 이동은 계속한다.
+                }
+                onLoggedOut()
+            }
+        }
+    }
 
     SettingScreen(
         uiState = uiState,
@@ -63,6 +87,7 @@ fun SettingsRoute() {
         },
         onSaveProfile = viewModel::saveProfile,
         onSaveMusicPreferences = viewModel::saveMusicPreferences,
+        onLogout = viewModel::logout,
         onOpenAppSettings = {
             val intent = Intent(
                 Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
@@ -88,6 +113,7 @@ fun SettingScreen(
     onAutoStartTrackingChanged: (Boolean) -> Unit,
     onSaveProfile: () -> Unit,
     onSaveMusicPreferences: () -> Unit,
+    onLogout: () -> Unit,
     onOpenAppSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -114,6 +140,39 @@ fun SettingScreen(
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+
+        Card {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.settings_account_section),
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = uiState.nickName.ifBlank {
+                        stringResource(R.string.settings_account_loading)
+                    },
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                OutlinedButton(
+                    onClick = onLogout,
+                    enabled = !uiState.isLoggingOut,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        if (uiState.isLoggingOut) {
+                            stringResource(R.string.settings_logging_out)
+                        } else {
+                            stringResource(R.string.settings_logout)
+                        }
+                    )
+                }
+            }
+        }
 
         Card {
             Column(
@@ -358,6 +417,7 @@ private fun SettingScreenPreview() {
                 stepLengthInput = "72",
                 heightInput = "170",
                 weightInput = "65",
+                nickName = "스텝러너12345678",
                 reminderNotificationsEnabled = true,
                 autoStartTrackingEnabled = true,
                 isLoading = false,
@@ -375,6 +435,7 @@ private fun SettingScreenPreview() {
             onAutoStartTrackingChanged = {},
             onSaveProfile = {},
             onSaveMusicPreferences = {},
+            onLogout = {},
             onOpenAppSettings = {}
         )
     }

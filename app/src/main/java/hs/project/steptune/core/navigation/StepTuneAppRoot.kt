@@ -98,8 +98,13 @@ fun StepTuneAppRoot() {
         ) {
             composable(AppDestination.Splash.route) {
                 SplashRoute(
-                    onFinished = {
+                    onNavigateToLogin = {
                         navController.navigate(AppDestination.Login.route) {
+                            popUpTo(AppDestination.Splash.route) { inclusive = true }
+                        }
+                    },
+                    onNavigateToPostLogin = {
+                        navController.navigate(AppDestination.PostLogin.route) {
                             popUpTo(AppDestination.Splash.route) { inclusive = true }
                         }
                     }
@@ -107,7 +112,7 @@ fun StepTuneAppRoot() {
             }
             composable(AppDestination.Login.route) {
                 LoginRoute(
-                    onContinueWithoutLogin = {
+                    onLoginSucceeded = {
                         navController.navigate(AppDestination.PostLogin.route) {
                             popUpTo(AppDestination.Login.route) { inclusive = true }
                         }
@@ -144,7 +149,14 @@ fun StepTuneAppRoot() {
                 StatsRoute()
             }
             composable(TopLevelDestination.Settings.route) {
-                SettingsRoute()
+                SettingsRoute(
+                    onLoggedOut = {
+                        navController.navigate(AppDestination.Login.route) {
+                            popUpTo(homeRoute) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }
+                )
             }
         }
     }

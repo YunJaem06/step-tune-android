@@ -1,9 +1,24 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.ksp)
 }
+
+val localProperties = Properties().apply {
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localPropertiesFile.inputStream().use(::load)
+    }
+}
+
+fun requiredLocalProperty(name: String): String =
+    localProperties.getProperty(name)?.takeIf(String::isNotBlank)
+        ?: error("$name must be set in local.properties")
+
+fun String.asBuildConfigString(): String = "\"${replace("\\", "\\\\").replace("\"", "\\\"")}\""
 
 android {
     namespace = "hs.project.steptune"
@@ -17,6 +32,16 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField(
+            "String",
+            "BASE_URL",
+            requiredLocalProperty("TEST_URL").asBuildConfigString()
+        )
+        buildConfigField(
+            "String",
+            "GOOGLE_WEB_CLIENT_ID",
+            requiredLocalProperty("GOOGLE_WEB_CLIENT_ID").asBuildConfigString()
+        )
     }
 
     buildTypes {
@@ -34,6 +59,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -55,6 +81,11 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.hilt.android)
     implementation(libs.glide)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.google.id)
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.converter.gson)
 
     ksp(libs.hilt.compiler)
     ksp(libs.androidx.room.compiler)

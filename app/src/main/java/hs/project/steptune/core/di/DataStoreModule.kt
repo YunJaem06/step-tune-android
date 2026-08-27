@@ -17,6 +17,7 @@ import javax.inject.Singleton
 object DataStoreModule {
 
     private const val SETTINGS_FILE_NAME = "pedometer_preferences.preferences_pb"
+    private const val AUTH_FILE_NAME = "auth_preferences.preferences_pb"
 
     @Provides
     @Singleton
@@ -25,6 +26,17 @@ object DataStoreModule {
     ): DataStore<Preferences> {
         return PreferenceDataStoreFactory.create(
             produceFile = { context.preferencesDataStoreFile(SETTINGS_FILE_NAME) }
+        )
+    }
+
+    @Provides
+    @Singleton
+    @AuthDataStore
+    fun provideAuthPreferencesDataStore(
+        @ApplicationContext context: Context
+    ): DataStore<Preferences> {
+        return PreferenceDataStoreFactory.create(
+            produceFile = { context.preferencesDataStoreFile(AUTH_FILE_NAME) }
         )
     }
 }

@@ -7,15 +7,22 @@ import hs.project.steptune.domain.model.MusicGenre
 import hs.project.steptune.domain.model.MusicMood
 import hs.project.steptune.domain.model.MusicPreferenceRules
 import hs.project.steptune.domain.usecase.ObserveUserPreferencesUseCase
+import hs.project.steptune.domain.usecase.LogoutUseCase
+import hs.project.steptune.domain.usecase.ObserveAuthSessionUseCase
 import hs.project.steptune.domain.usecase.SetAutoStartTrackingEnabledUseCase
 import hs.project.steptune.domain.usecase.SetReminderNotificationsEnabledUseCase
 import hs.project.steptune.domain.usecase.UpdateMusicPreferencesUseCase
 import hs.project.steptune.domain.usecase.UpdateProfileSettingsUseCase
+import hs.project.steptune.domain.usecase.SyncCurrentUserUseCase
 import hs.project.steptune.feature.musicpreference.MusicPreferenceSelectionUiState
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -26,14 +33,22 @@ class SettingsViewModel @Inject constructor(
     private val updateProfileSettingsUseCase: UpdateProfileSettingsUseCase,
     private val setReminderNotificationsEnabledUseCase: SetReminderNotificationsEnabledUseCase,
     private val setAutoStartTrackingEnabledUseCase: SetAutoStartTrackingEnabledUseCase,
-    private val updateMusicPreferencesUseCase: UpdateMusicPreferencesUseCase
+    private val updateMusicPreferencesUseCase: UpdateMusicPreferencesUseCase,
+    private val observeAuthSessionUseCase: ObserveAuthSessionUseCase,
+    private val syncCurrentUserUseCase: SyncCurrentUserUseCase,
+    private val logoutUseCase: LogoutUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
+    private val _events = MutableSharedFlow<SettingsEvent>()
+    val events: SharedFlow<SettingsEvent> = _events.asSharedFlow()
+
     init {
         loadPreferences()
+        observeAuthSession()
+        syncCurrentUser()
     }
 
     fun onDailyGoalChanged(value: String) {
@@ -170,6 +185,36 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun logout() {
+        if (_uiState.value.isLoggingOut) return
+        _uiState.update { it.copy(isLoggingOut = true) }
+        viewModelScope.launch {
+            logoutUseCase()
+            _uiState.update { it.copy(isLoggingOut = false) }
+            _events.emit(SettingsEvent.LoggedOut)
+        }
+    }
+
+    private fun observeAuthSession() {
+        viewModelScope.launch {
+            observeAuthSessionUseCase().collect { session ->
+                _uiState.update { it.copy(nickName = session.nickName) }
+            }
+        }
+    }
+
+    private fun syncCurrentUser() {
+        viewModelScope.launch {
+            try {
+                syncCurrentUserUseCase()
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (_: Exception) {
+                // 설정 화면은 로컬 캐시된 사용자 정보를 계속 표시한다.
+            }
+        }
+    }
+
     private fun loadPreferences() {
         viewModelScope.launch {
             val preferences = observeUserPreferencesUseCase().first()
@@ -199,6 +244,10 @@ class SettingsViewModel @Inject constructor(
         val sanitized = value.filter(Char::isDigit)
         _uiState.update { current -> reducer(current, sanitized) }
     }
+}
+
+sealed interface SettingsEvent {
+    data object LoggedOut : SettingsEvent
 }
 
 

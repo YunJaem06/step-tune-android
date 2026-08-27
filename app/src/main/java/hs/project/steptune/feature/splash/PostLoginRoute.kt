@@ -21,7 +21,7 @@ fun PostLoginRoute(
     onNavigateToOnboarding: () -> Unit,
     onNavigateToMain: () -> Unit
 ) {
-    val viewModel: SplashViewModel = hiltViewModel()
+    val viewModel: PostLoginViewModel = hiltViewModel()
     val context = LocalContext.current
     val preferences = viewModel.preferences.collectAsStateWithLifecycle(initialValue = null).value
     val hasActivityPermission = PermissionUtils.hasActivityRecognitionPermission(context)

@@ -14,7 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -22,9 +22,9 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -32,33 +32,75 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.credentials.exceptions.GetCredentialException
+import androidx.credentials.exceptions.NoCredentialException
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import hs.project.steptune.R
 import hs.project.steptune.ui.theme.StepTuneTheme
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
 @Composable
 fun LoginRoute(
-    onContinueWithoutLogin: () -> Unit
+    onLoginSucceeded: () -> Unit
 ) {
+    val viewModel: LoginViewModel = hiltViewModel()
+    val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
+    val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
-    val googleLoginPreparingMessage = stringResource(R.string.login_google_preparing_message)
+    val noCredentialMessage = stringResource(R.string.login_google_no_credential)
+    val credentialErrorMessage = stringResource(R.string.login_google_credential_error)
+    val loginFailedMessage = stringResource(R.string.login_google_server_error)
+
+    LaunchedEffect(viewModel, onLoginSucceeded) {
+        viewModel.events.collect { event ->
+            when (event) {
+                LoginEvent.LoginSucceeded -> onLoginSucceeded()
+                LoginEvent.LoginFailed -> snackbarHostState.showSnackbar(loginFailedMessage)
+            }
+        }
+    }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
         LoginScreen(
-            onGoogleLoginClick = {
+            uiState = uiState,
+            onGoogleLoginClick = googleLogin@{
+                if (uiState.isLoading) return@googleLogin
+                viewModel.onCredentialRequestStarted()
                 coroutineScope.launch {
-                    snackbarHostState.showSnackbar(googleLoginPreparingMessage)
+                    try {
+                        viewModel.loginWithGoogle(requestGoogleIdToken(context))
+                    } catch (_: GetCredentialCancellationException) {
+                        viewModel.onCredentialRequestFailed()
+                    } catch (_: NoCredentialException) {
+                        viewModel.onCredentialRequestFailed()
+                        snackbarHostState.showSnackbar(noCredentialMessage)
+                    } catch (_: GetCredentialException) {
+                        viewModel.onCredentialRequestFailed()
+                        snackbarHostState.showSnackbar(credentialErrorMessage)
+                    } catch (_: IllegalArgumentException) {
+                        viewModel.onCredentialRequestFailed()
+                        snackbarHostState.showSnackbar(credentialErrorMessage)
+                    } catch (exception: CancellationException) {
+                        viewModel.onCredentialRequestFailed()
+                        throw exception
+                    } catch (_: Exception) {
+                        viewModel.onCredentialRequestFailed()
+                        snackbarHostState.showSnackbar(credentialErrorMessage)
+                    }
                 }
             },
-            onContinueWithoutLogin = onContinueWithoutLogin,
             modifier = Modifier.padding(innerPadding)
         )
     }
@@ -66,8 +108,8 @@ fun LoginRoute(
 
 @Composable
 fun LoginScreen(
+    uiState: LoginUiState,
     onGoogleLoginClick: () -> Unit,
-    onContinueWithoutLogin: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val background = MaterialTheme.colorScheme.background
@@ -91,33 +133,14 @@ fun LoginScreen(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            GoogleLoginButton(onClick = onGoogleLoginClick)
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 22.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                HorizontalDivider(modifier = Modifier.weight(1f))
-                Text(
-                    text = stringResource(R.string.login_or),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                HorizontalDivider(modifier = Modifier.weight(1f))
-            }
-
-            TextButton(
-                onClick = onContinueWithoutLogin,
-                modifier = Modifier.padding(top = 6.dp)
-            ) {
-                Text(stringResource(R.string.login_continue_without_account))
-            }
+            GoogleLoginButton(
+                onClick = onGoogleLoginClick,
+                isLoading = uiState.isLoading
+            )
 
             Text(
                 text = stringResource(R.string.login_terms_notice),
+                modifier = Modifier.padding(top = 20.dp),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
@@ -189,10 +212,12 @@ private fun LoginHero() {
 @Composable
 private fun GoogleLoginButton(
     onClick: () -> Unit,
+    isLoading: Boolean,
     modifier: Modifier = Modifier
 ) {
     Surface(
         onClick = onClick,
+        enabled = !isLoading,
         modifier = modifier
             .fillMaxWidth()
             .height(56.dp)
@@ -212,18 +237,25 @@ private fun GoogleLoginButton(
                 .padding(horizontal = 18.dp),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_google),
-                contentDescription = null,
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .size(24.dp),
-                tint = Color.Unspecified
-            )
-            Text(
-                text = stringResource(R.string.login_continue_with_google),
-                style = MaterialTheme.typography.labelLarge
-            )
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(22.dp),
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Icon(
+                    painter = painterResource(R.drawable.ic_google),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .size(24.dp),
+                    tint = Color.Unspecified
+                )
+                Text(
+                    text = stringResource(R.string.login_continue_with_google),
+                    style = MaterialTheme.typography.labelLarge
+                )
+            }
         }
     }
 }
@@ -233,8 +265,8 @@ private fun GoogleLoginButton(
 private fun LoginScreenPreview() {
     StepTuneTheme {
         LoginScreen(
-            onGoogleLoginClick = {},
-            onContinueWithoutLogin = {}
+            uiState = LoginUiState(),
+            onGoogleLoginClick = {}
         )
     }
 }
