@@ -86,6 +86,7 @@ dependencies {
     implementation(libs.google.id)
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.gson)
+    implementation(libs.okhttp.logging.interceptor)
 
     ksp(libs.hilt.compiler)
     ksp(libs.androidx.room.compiler)

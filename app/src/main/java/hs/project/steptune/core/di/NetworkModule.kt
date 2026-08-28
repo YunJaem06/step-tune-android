@@ -4,11 +4,14 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import hs.project.steptune.BuildConfig
 import hs.project.steptune.Config
 import hs.project.steptune.api.AuthAPI
 import hs.project.steptune.api.client.BearerAuthInterceptor
+import hs.project.steptune.util.LogUtil
 import javax.inject.Singleton
 import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
@@ -18,10 +21,33 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideOkHttpClient(
-        bearerAuthInterceptor: BearerAuthInterceptor
+        bearerAuthInterceptor: BearerAuthInterceptor,
+        httpLoggingInterceptor: HttpLoggingInterceptor
     ): OkHttpClient = OkHttpClient.Builder()
         .addInterceptor(bearerAuthInterceptor)
+        .apply {
+            if (BuildConfig.DEBUG) {
+                addInterceptor(httpLoggingInterceptor)
+            }
+        }
         .build()
+
+    @Provides
+    @Singleton
+    fun provideHttpLoggingInterceptor(): HttpLoggingInterceptor =
+        HttpLoggingInterceptor { message ->
+            LogUtil.d(message)
+        }.apply {
+            level = if (BuildConfig.DEBUG) {
+                HttpLoggingInterceptor.Level.BODY
+            } else {
+                HttpLoggingInterceptor.Level.NONE
+            }
+            redactHeader("Authorization")
+            redactHeader("Cookie")
+            redactHeader("Set-Cookie")
+            redactHeader("X-API-Key")
+        }
 
     @Provides
     @Singleton
