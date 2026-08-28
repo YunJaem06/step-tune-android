@@ -1,6 +1,7 @@
 package hs.project.steptune.api
 
 import com.google.gson.Gson
+import hs.project.steptune.data.user.request.RequestUpdateNickname
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Test
@@ -21,5 +22,15 @@ class AuthAPIRequestTest {
         assertFalse(jsonObject.has("providerId"))
         assertFalse(jsonObject.has("deviceType"))
         assertFalse(jsonObject.has("deviceFingerprint"))
+    }
+
+    @Test
+    fun `nickname update request contains only nickName`() {
+        val jsonObject = Gson().toJsonTree(
+            RequestUpdateNickname(nickName = "새닉네임")
+        ).asJsonObject
+
+        assertEquals(setOf("nickName"), jsonObject.keySet())
+        assertEquals("새닉네임", jsonObject["nickName"].asString)
     }
 }

@@ -1,12 +1,15 @@
 package hs.project.steptune.data.repository
 
 import hs.project.steptune.api.AuthAPI
+import hs.project.steptune.api.ConflictException
 import hs.project.steptune.api.ServerException
 import hs.project.steptune.api.UnauthorizedException
 import hs.project.steptune.data.ServerResponse
 import hs.project.steptune.data.auth.response.ResponseAuthLogin
 import hs.project.steptune.data.local.preferences.AuthPreferencesDataSource
+import hs.project.steptune.data.user.request.RequestUpdateNickname
 import hs.project.steptune.domain.model.AuthSession
+import hs.project.steptune.domain.model.NicknameAvailability
 import hs.project.steptune.domain.repository.AuthRepository
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -62,10 +65,34 @@ class AuthRepositoryImpl @Inject constructor(
             return latestSession
         }
         authPreferencesDataSource.updateUser(
-            userId = user.userId,
+            userId = user.userId.toString(),
             nickName = user.nickName
         )
         return getCurrentSession()
+    }
+
+    override suspend fun checkNicknameAvailability(nickName: String): NicknameAvailability {
+        val response = authAPI.requestNicknameAvailability(nickName).requireData()
+        return NicknameAvailability(
+            nickName = response.nickName,
+            isAvailable = response.available
+        )
+    }
+
+    override suspend fun updateNickname(nickName: String): AuthSession {
+        val user = authAPI.requestUpdateNickname(
+            RequestUpdateNickname(nickName = nickName)
+        ).requireData()
+        authPreferencesDataSource.updateUser(
+            userId = user.userId.toString(),
+            nickName = user.nickName
+        )
+        return getCurrentSession()
+    }
+
+    override suspend fun deleteAccount() {
+        authAPI.requestDeleteAccount().requireSuccess()
+        authPreferencesDataSource.clearSession()
     }
 
     override suspend fun logout() {
@@ -91,7 +118,7 @@ class AuthRepositoryImpl @Inject constructor(
         val session = AuthSession(
             accessToken = data.accessToken,
             refreshToken = data.refreshToken,
-            userId = data.userData.userId,
+            userId = data.userData.userId.toString(),
             nickName = data.userData.nickName
         )
         authPreferencesDataSource.saveSession(session)
@@ -102,6 +129,9 @@ class AuthRepositoryImpl @Inject constructor(
         if (code() == HTTP_UNAUTHORIZED) {
             throw UnauthorizedException()
         }
+        if (code() == HTTP_CONFLICT) {
+            throw ConflictException(body()?.message ?: "이미 사용 중인 닉네임입니다.")
+        }
 
         val responseBody = body()
         if (!isSuccessful || responseBody?.code != HTTP_OK) {
@@ -111,9 +141,21 @@ class AuthRepositoryImpl @Inject constructor(
             ?: throw ServerException("서버 응답에 필요한 데이터가 없습니다.")
     }
 
+    private fun Response<ServerResponse<Any>>.requireSuccess() {
+        if (code() == HTTP_UNAUTHORIZED) {
+            throw UnauthorizedException()
+        }
+
+        val responseBody = body()
+        if (!isSuccessful || responseBody?.code != HTTP_OK) {
+            throw ServerException(responseBody?.message ?: "서버 요청에 실패했습니다.")
+        }
+    }
+
     private companion object {
         const val GOOGLE_PROVIDER = "google"
         const val HTTP_OK = 200
         const val HTTP_UNAUTHORIZED = 401
+        const val HTTP_CONFLICT = 409
     }
 }

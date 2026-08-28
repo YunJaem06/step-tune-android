@@ -8,6 +8,9 @@ object Config {
         const val AUTH_SOCIAL = "api/v1/auth/social"
         const val AUTH_REFRESH = "api/v1/auth/refresh"
         const val AUTH_LOGOUT = "api/v1/auth/logout"
-        const val MY_INFO = "api/v1/me"
+        const val USER_PROFILE = "api/v1/me/profile"
+        const val USER_NICKNAME = "api/v1/me/nickname"
+        const val USER_NICKNAME_AVAILABILITY = "api/v1/me/nickname/availability"
+        const val USER_ACCOUNT = "api/v1/me/account"
     }
 }
