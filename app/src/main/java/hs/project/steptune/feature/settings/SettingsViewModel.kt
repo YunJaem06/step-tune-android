@@ -3,16 +3,20 @@ package hs.project.steptune.feature.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import hs.project.steptune.api.ConflictException
 import hs.project.steptune.domain.model.MusicGenre
 import hs.project.steptune.domain.model.MusicMood
 import hs.project.steptune.domain.model.MusicPreferenceRules
 import hs.project.steptune.domain.usecase.ObserveUserPreferencesUseCase
+import hs.project.steptune.domain.usecase.CheckNicknameAvailabilityUseCase
+import hs.project.steptune.domain.usecase.DeleteAccountUseCase
 import hs.project.steptune.domain.usecase.LogoutUseCase
 import hs.project.steptune.domain.usecase.ObserveAuthSessionUseCase
 import hs.project.steptune.domain.usecase.SetAutoStartTrackingEnabledUseCase
 import hs.project.steptune.domain.usecase.SetReminderNotificationsEnabledUseCase
 import hs.project.steptune.domain.usecase.UpdateMusicPreferencesUseCase
 import hs.project.steptune.domain.usecase.UpdateProfileSettingsUseCase
+import hs.project.steptune.domain.usecase.UpdateNicknameUseCase
 import hs.project.steptune.domain.usecase.SyncCurrentUserUseCase
 import hs.project.steptune.feature.musicpreference.MusicPreferenceSelectionUiState
 import javax.inject.Inject
@@ -36,6 +40,9 @@ class SettingsViewModel @Inject constructor(
     private val updateMusicPreferencesUseCase: UpdateMusicPreferencesUseCase,
     private val observeAuthSessionUseCase: ObserveAuthSessionUseCase,
     private val syncCurrentUserUseCase: SyncCurrentUserUseCase,
+    private val checkNicknameAvailabilityUseCase: CheckNicknameAvailabilityUseCase,
+    private val updateNicknameUseCase: UpdateNicknameUseCase,
+    private val deleteAccountUseCase: DeleteAccountUseCase,
     private val logoutUseCase: LogoutUseCase
 ) : ViewModel() {
 
@@ -90,6 +97,103 @@ class SettingsViewModel @Inject constructor(
         }
         viewModelScope.launch {
             setAutoStartTrackingEnabledUseCase(enabled)
+        }
+    }
+
+    fun onNicknameChanged(value: String) {
+        val normalized = value.trim()
+        _uiState.update {
+            it.copy(
+                nicknameInput = value,
+                nicknameValidationState = if (
+                    normalized.length !in 1..MAX_NICKNAME_LENGTH
+                ) {
+                    NicknameValidationState.INVALID
+                } else {
+                    NicknameValidationState.IDLE
+                },
+                nicknameUpdated = false
+            )
+        }
+    }
+
+    fun checkNicknameAvailability() {
+        val requestedNickname = _uiState.value.normalizedNicknameInput
+        if (_uiState.value.isCheckingNickname || _uiState.value.isUpdatingNickname) return
+        if (!_uiState.value.isNicknameInputValid) {
+            _uiState.update {
+                it.copy(nicknameValidationState = NicknameValidationState.INVALID)
+            }
+            return
+        }
+
+        _uiState.update {
+            it.copy(
+                isCheckingNickname = true,
+                nicknameValidationState = NicknameValidationState.IDLE,
+                nicknameUpdated = false
+            )
+        }
+        viewModelScope.launch {
+            try {
+                val result = checkNicknameAvailabilityUseCase(requestedNickname)
+                _uiState.update {
+                    it.copy(
+                        nicknameInput = result.nickName,
+                        isCheckingNickname = false,
+                        nicknameValidationState = if (result.isAvailable) {
+                            NicknameValidationState.AVAILABLE
+                        } else {
+                            NicknameValidationState.UNAVAILABLE
+                        }
+                    )
+                }
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (_: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isCheckingNickname = false,
+                        nicknameValidationState = NicknameValidationState.ERROR
+                    )
+                }
+            }
+        }
+    }
+
+    fun updateNickname() {
+        val requestedNickname = _uiState.value.normalizedNicknameInput
+        if (!_uiState.value.canUpdateNickname) return
+        _uiState.update {
+            it.copy(isUpdatingNickname = true, nicknameUpdated = false)
+        }
+        viewModelScope.launch {
+            try {
+                updateNicknameUseCase(requestedNickname)
+                _uiState.update {
+                    it.copy(
+                        isUpdatingNickname = false,
+                        nicknameValidationState = NicknameValidationState.IDLE,
+                        nicknameUpdated = true
+                    )
+                }
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (_: ConflictException) {
+                _uiState.update {
+                    it.copy(
+                        isUpdatingNickname = false,
+                        nicknameValidationState = NicknameValidationState.UNAVAILABLE
+                    )
+                }
+            } catch (_: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isUpdatingNickname = false,
+                        nicknameValidationState = NicknameValidationState.ERROR
+                    )
+                }
+            }
         }
     }
 
@@ -195,10 +299,57 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun showDeleteAccountDialog() {
+        if (_uiState.value.isDeletingAccount) return
+        _uiState.update {
+            it.copy(showDeleteAccountDialog = true, deleteAccountFailed = false)
+        }
+    }
+
+    fun hideDeleteAccountDialog() {
+        if (_uiState.value.isDeletingAccount) return
+        _uiState.update {
+            it.copy(showDeleteAccountDialog = false, deleteAccountFailed = false)
+        }
+    }
+
+    fun deleteAccount() {
+        if (_uiState.value.isDeletingAccount) return
+        _uiState.update {
+            it.copy(isDeletingAccount = true, deleteAccountFailed = false)
+        }
+        viewModelScope.launch {
+            try {
+                deleteAccountUseCase()
+                _uiState.update {
+                    it.copy(isDeletingAccount = false, showDeleteAccountDialog = false)
+                }
+                _events.emit(SettingsEvent.LoggedOut)
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (_: Exception) {
+                _uiState.update {
+                    it.copy(isDeletingAccount = false, deleteAccountFailed = true)
+                }
+            }
+        }
+    }
+
     private fun observeAuthSession() {
         viewModelScope.launch {
             observeAuthSessionUseCase().collect { session ->
-                _uiState.update { it.copy(nickName = session.nickName) }
+                _uiState.update { current ->
+                    val shouldUpdateInput = current.nicknameInput.isBlank() ||
+                        current.nicknameInput == current.nickName
+                    current.copy(
+                        nickName = session.nickName,
+                        nicknameInput = if (shouldUpdateInput) {
+                            session.nickName
+                        } else {
+                            current.nicknameInput
+                        }
+                    )
+                }
             }
         }
     }
@@ -243,6 +394,10 @@ class SettingsViewModel @Inject constructor(
     ) {
         val sanitized = value.filter(Char::isDigit)
         _uiState.update { current -> reducer(current, sanitized) }
+    }
+
+    private companion object {
+        const val MAX_NICKNAME_LENGTH = 30
     }
 }
 

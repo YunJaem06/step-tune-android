@@ -13,6 +13,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -20,6 +21,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
@@ -71,6 +73,9 @@ fun SettingsRoute(
         activityRecognitionGranted = PermissionUtils.hasActivityRecognitionPermission(context),
         notificationPermissionGranted = PermissionUtils.hasNotificationPermission(context),
         onDailyGoalChanged = viewModel::onDailyGoalChanged,
+        onNicknameChanged = viewModel::onNicknameChanged,
+        onCheckNickname = viewModel::checkNicknameAvailability,
+        onUpdateNickname = viewModel::updateNickname,
         onStepLengthChanged = viewModel::onStepLengthChanged,
         onHeightChanged = viewModel::onHeightChanged,
         onWeightChanged = viewModel::onWeightChanged,
@@ -88,6 +93,9 @@ fun SettingsRoute(
         onSaveProfile = viewModel::saveProfile,
         onSaveMusicPreferences = viewModel::saveMusicPreferences,
         onLogout = viewModel::logout,
+        onShowDeleteAccountDialog = viewModel::showDeleteAccountDialog,
+        onHideDeleteAccountDialog = viewModel::hideDeleteAccountDialog,
+        onDeleteAccount = viewModel::deleteAccount,
         onOpenAppSettings = {
             val intent = Intent(
                 Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
@@ -104,6 +112,9 @@ fun SettingScreen(
     activityRecognitionGranted: Boolean,
     notificationPermissionGranted: Boolean,
     onDailyGoalChanged: (String) -> Unit,
+    onNicknameChanged: (String) -> Unit,
+    onCheckNickname: () -> Unit,
+    onUpdateNickname: () -> Unit,
     onStepLengthChanged: (String) -> Unit,
     onHeightChanged: (String) -> Unit,
     onWeightChanged: (String) -> Unit,
@@ -114,6 +125,9 @@ fun SettingScreen(
     onSaveProfile: () -> Unit,
     onSaveMusicPreferences: () -> Unit,
     onLogout: () -> Unit,
+    onShowDeleteAccountDialog: () -> Unit,
+    onHideDeleteAccountDialog: () -> Unit,
+    onDeleteAccount: () -> Unit,
     onOpenAppSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -158,9 +172,84 @@ fun SettingScreen(
                     },
                     style = MaterialTheme.typography.bodyLarge
                 )
+                OutlinedTextField(
+                    value = uiState.nicknameInput,
+                    onValueChange = onNicknameChanged,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !uiState.isCheckingNickname && !uiState.isUpdatingNickname,
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.settings_nickname)) },
+                    supportingText = {
+                        Text(
+                            stringResource(
+                                R.string.settings_nickname_length,
+                                uiState.nicknameInput.length
+                            )
+                        )
+                    },
+                    isError = uiState.nicknameValidationState == NicknameValidationState.INVALID ||
+                        uiState.nicknameValidationState == NicknameValidationState.UNAVAILABLE ||
+                        uiState.nicknameValidationState == NicknameValidationState.ERROR
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onCheckNickname,
+                        enabled = uiState.canCheckNickname,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            if (uiState.isCheckingNickname) {
+                                stringResource(R.string.settings_nickname_checking)
+                            } else {
+                                stringResource(R.string.settings_nickname_check)
+                            }
+                        )
+                    }
+                    Button(
+                        onClick = onUpdateNickname,
+                        enabled = uiState.canUpdateNickname,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            if (uiState.isUpdatingNickname) {
+                                stringResource(R.string.settings_nickname_updating)
+                            } else {
+                                stringResource(R.string.settings_nickname_update)
+                            }
+                        )
+                    }
+                }
+                when (uiState.nicknameValidationState) {
+                    NicknameValidationState.INVALID -> AccountStatusText(
+                        text = stringResource(R.string.settings_nickname_invalid),
+                        isError = true
+                    )
+                    NicknameValidationState.AVAILABLE -> AccountStatusText(
+                        text = stringResource(R.string.settings_nickname_available),
+                        isError = false
+                    )
+                    NicknameValidationState.UNAVAILABLE -> AccountStatusText(
+                        text = stringResource(R.string.settings_nickname_unavailable),
+                        isError = true
+                    )
+                    NicknameValidationState.ERROR -> AccountStatusText(
+                        text = stringResource(R.string.settings_nickname_request_failed),
+                        isError = true
+                    )
+                    NicknameValidationState.IDLE -> Unit
+                }
+                if (uiState.nicknameUpdated) {
+                    AccountStatusText(
+                        text = stringResource(R.string.settings_nickname_updated),
+                        isError = false
+                    )
+                }
                 OutlinedButton(
                     onClick = onLogout,
-                    enabled = !uiState.isLoggingOut,
+                    enabled = !uiState.isLoggingOut && !uiState.isDeletingAccount,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
@@ -169,6 +258,16 @@ fun SettingScreen(
                         } else {
                             stringResource(R.string.settings_logout)
                         }
+                    )
+                }
+                TextButton(
+                    onClick = onShowDeleteAccountDialog,
+                    enabled = !uiState.isLoggingOut && !uiState.isDeletingAccount,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = stringResource(R.string.settings_delete_account),
+                        color = MaterialTheme.colorScheme.error
                     )
                 }
             }
@@ -338,6 +437,59 @@ fun SettingScreen(
             }
         }
     }
+
+    if (uiState.showDeleteAccountDialog) {
+        AlertDialog(
+            onDismissRequest = onHideDeleteAccountDialog,
+            title = { Text(stringResource(R.string.settings_delete_account_title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.settings_delete_account_description))
+                    if (uiState.deleteAccountFailed) {
+                        Text(
+                            text = stringResource(R.string.settings_delete_account_failed),
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = onDeleteAccount,
+                    enabled = !uiState.isDeletingAccount
+                ) {
+                    Text(
+                        text = if (uiState.isDeletingAccount) {
+                            stringResource(R.string.settings_delete_account_deleting)
+                        } else {
+                            stringResource(R.string.settings_delete_account_confirm)
+                        },
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = onHideDeleteAccountDialog,
+                    enabled = !uiState.isDeletingAccount
+                ) {
+                    Text(stringResource(R.string.settings_delete_account_cancel))
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun AccountStatusText(
+    text: String,
+    isError: Boolean
+) {
+    Text(
+        text = text,
+        color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+        style = MaterialTheme.typography.bodyMedium
+    )
 }
 
 @Composable
@@ -418,6 +570,7 @@ private fun SettingScreenPreview() {
                 heightInput = "170",
                 weightInput = "65",
                 nickName = "스텝러너12345678",
+                nicknameInput = "스텝러너12345678",
                 reminderNotificationsEnabled = true,
                 autoStartTrackingEnabled = true,
                 isLoading = false,
@@ -426,6 +579,9 @@ private fun SettingScreenPreview() {
             activityRecognitionGranted = true,
             notificationPermissionGranted = false,
             onDailyGoalChanged = {},
+            onNicknameChanged = {},
+            onCheckNickname = {},
+            onUpdateNickname = {},
             onStepLengthChanged = {},
             onHeightChanged = {},
             onWeightChanged = {},
@@ -436,6 +592,9 @@ private fun SettingScreenPreview() {
             onSaveProfile = {},
             onSaveMusicPreferences = {},
             onLogout = {},
+            onShowDeleteAccountDialog = {},
+            onHideDeleteAccountDialog = {},
+            onDeleteAccount = {},
             onOpenAppSettings = {}
         )
     }
