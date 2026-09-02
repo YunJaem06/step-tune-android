@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -71,6 +72,7 @@ fun LoginRoute(
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
         LoginScreen(
@@ -153,8 +155,7 @@ fun LoginScreen(
 private fun LoginHero() {
     Column(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 36.dp),
+            .fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
         Row(
