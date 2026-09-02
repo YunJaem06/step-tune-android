@@ -10,8 +10,10 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -20,6 +22,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.hilt.navigation.compose.hiltViewModel
+import hs.project.steptune.core.auth.AuthSessionEvent
 import hs.project.steptune.feature.home.HomeRoute
 import hs.project.steptune.feature.login.LoginRoute
 import hs.project.steptune.feature.onboarding.OnboardingRoute
@@ -27,10 +31,13 @@ import hs.project.steptune.feature.settings.SettingsRoute
 import hs.project.steptune.feature.splash.PostLoginRoute
 import hs.project.steptune.feature.splash.SplashRoute
 import hs.project.steptune.feature.stats.StatsRoute
+import hs.project.steptune.service.StepTrackingServiceController
 
 @Composable
 fun StepTuneAppRoot() {
     val navController = rememberNavController()
+    val context = LocalContext.current
+    val viewModel: StepTuneAppViewModel = hiltViewModel()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = backStackEntry?.destination
     val currentRoutes = currentDestination?.hierarchy?.mapNotNull { it.route }?.toSet().orEmpty()
@@ -38,6 +45,18 @@ fun StepTuneAppRoot() {
     val isHomeDestination = homeRoute in currentRoutes
     val isMainDestination = TopLevelDestination.items.any { destination ->
         destination.route in currentRoutes
+    }
+
+    LaunchedEffect(viewModel, navController) {
+        viewModel.authSessionEvents.collect { event ->
+            if (event == AuthSessionEvent.SessionExpired) {
+                StepTrackingServiceController.stop(context)
+                navController.navigate(AppDestination.Login.route) {
+                    popUpTo(homeRoute) { inclusive = true }
+                    launchSingleTop = true
+                }
+            }
+        }
     }
 
     BackHandler(enabled = isMainDestination && !isHomeDestination) {
@@ -99,6 +118,7 @@ fun StepTuneAppRoot() {
             composable(AppDestination.Splash.route) {
                 SplashRoute(
                     onNavigateToLogin = {
+                        StepTrackingServiceController.stop(context)
                         navController.navigate(AppDestination.Login.route) {
                             popUpTo(AppDestination.Splash.route) { inclusive = true }
                         }

@@ -12,7 +12,7 @@ class BearerAuthInterceptor @Inject constructor(
 ) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
-        if (request.url.encodedPath in UNAUTHENTICATED_PATHS) {
+        if (request.url.encodedPath.isUnauthenticatedPath()) {
             return chain.proceed(request)
         }
 
@@ -24,7 +24,7 @@ class BearerAuthInterceptor @Inject constructor(
 }
 
 internal fun Request.withBearerAccessToken(accessToken: String): Request {
-    if (accessToken.isBlank() || url.encodedPath in UNAUTHENTICATED_PATHS) {
+    if (accessToken.isBlank() || url.encodedPath.isUnauthenticatedPath()) {
         return this
     }
 
@@ -32,6 +32,8 @@ internal fun Request.withBearerAccessToken(accessToken: String): Request {
         .header("Authorization", "Bearer $accessToken")
         .build()
 }
+
+internal fun String.isUnauthenticatedPath(): Boolean = this in UNAUTHENTICATED_PATHS
 
 private val UNAUTHENTICATED_PATHS = setOf(
     "/api/v1/auth/social",
