@@ -80,6 +80,12 @@ class PedometerPreferencesDataSource @Inject constructor(
         }
     }
 
+    suspend fun clearAll() {
+        dataStore.edit { prefs ->
+            prefs.clear()
+        }
+    }
+
     companion object {
         private val DAILY_GOAL = intPreferencesKey("daily_goal")
         private val STEP_LENGTH_CM = intPreferencesKey("step_length_cm")

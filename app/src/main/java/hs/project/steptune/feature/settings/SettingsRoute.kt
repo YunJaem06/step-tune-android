@@ -54,6 +54,7 @@ fun SettingsRoute(
     LaunchedEffect(viewModel, onLoggedOut) {
         viewModel.events.collect { event ->
             if (event == SettingsEvent.LoggedOut) {
+                StepTrackingServiceController.stop(context)
                 try {
                     CredentialManager.create(context).clearCredentialState(
                         ClearCredentialStateRequest()
@@ -95,7 +96,10 @@ fun SettingsRoute(
         onLogout = viewModel::logout,
         onShowDeleteAccountDialog = viewModel::showDeleteAccountDialog,
         onHideDeleteAccountDialog = viewModel::hideDeleteAccountDialog,
-        onDeleteAccount = viewModel::deleteAccount,
+        onDeleteAccount = {
+            StepTrackingServiceController.stop(context)
+            viewModel.deleteAccount()
+        },
         onOpenAppSettings = {
             val intent = Intent(
                 Settings.ACTION_APPLICATION_DETAILS_SETTINGS,

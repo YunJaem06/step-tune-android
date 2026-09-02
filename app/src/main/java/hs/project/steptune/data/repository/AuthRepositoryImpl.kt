@@ -11,6 +11,7 @@ import hs.project.steptune.data.user.request.RequestUpdateNickname
 import hs.project.steptune.domain.model.AuthSession
 import hs.project.steptune.domain.model.NicknameAvailability
 import hs.project.steptune.domain.repository.AuthRepository
+import hs.project.steptune.domain.repository.LocalUserDataRepository
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CancellationException
@@ -20,7 +21,8 @@ import retrofit2.Response
 @Singleton
 class AuthRepositoryImpl @Inject constructor(
     private val authAPI: AuthAPI,
-    private val authPreferencesDataSource: AuthPreferencesDataSource
+    private val authPreferencesDataSource: AuthPreferencesDataSource,
+    private val localUserDataRepository: LocalUserDataRepository
 ) : AuthRepository {
     override fun observeSession(): Flow<AuthSession> = authPreferencesDataSource.session
 
@@ -92,6 +94,7 @@ class AuthRepositoryImpl @Inject constructor(
 
     override suspend fun deleteAccount() {
         authAPI.requestDeleteAccount().requireSuccess()
+        localUserDataRepository.clearAll()
         authPreferencesDataSource.clearSession()
     }
 
@@ -115,10 +118,16 @@ class AuthRepositoryImpl @Inject constructor(
     }
 
     private suspend fun saveAuthData(data: ResponseAuthLogin): AuthSession {
+        val previousUserId = getCurrentSession().userId
+        val userId = data.userData.userId.toString()
+        localUserDataRepository.prepareForUser(
+            userId = userId,
+            previousUserId = previousUserId
+        )
         val session = AuthSession(
             accessToken = data.accessToken,
             refreshToken = data.refreshToken,
-            userId = data.userData.userId.toString(),
+            userId = userId,
             nickName = data.userData.nickName
         )
         authPreferencesDataSource.saveSession(session)

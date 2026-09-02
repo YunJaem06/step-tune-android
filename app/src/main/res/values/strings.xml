@@ -33,7 +33,7 @@
     <string name="settings_logging_out">로그아웃 중…</string>
     <string name="settings_delete_account">회원 탈퇴</string>
     <string name="settings_delete_account_title">StepTune에서 탈퇴할까요?</string>
-    <string name="settings_delete_account_description">계정과 소셜 연결, 로그인 세션이 영구 삭제됩니다. 기기에 저장된 걸음 및 추천 기록은 현재 삭제되지 않습니다.</string>
+    <string name="settings_delete_account_description">계정과 소셜 연결, 로그인 세션, 기기에 저장된 걸음 및 추천 기록이 영구 삭제됩니다.</string>
     <string name="settings_delete_account_confirm">탈퇴하기</string>
     <string name="settings_delete_account_deleting">탈퇴 처리 중…</string>
     <string name="settings_delete_account_cancel">취소</string>

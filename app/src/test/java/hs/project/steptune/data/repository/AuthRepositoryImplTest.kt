@@ -10,6 +10,7 @@ import hs.project.steptune.data.local.preferences.AuthPreferencesDataSource
 import hs.project.steptune.data.user.request.RequestUpdateNickname
 import hs.project.steptune.data.user.response.ResponseNicknameAvailability
 import hs.project.steptune.domain.model.AuthSession
+import hs.project.steptune.domain.repository.LocalUserDataRepository
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -63,13 +64,19 @@ class AuthRepositoryImplTest {
             )
         }
 
-        val session = AuthRepositoryImpl(api, dataSource).refreshSession()
+        val localUserDataRepository = FakeLocalUserDataRepository()
+        val session = AuthRepositoryImpl(
+            api,
+            dataSource,
+            localUserDataRepository
+        ).refreshSession()
 
         assertEquals("old-refresh", api.lastRefreshRequest?.refreshToken)
         assertEquals("new-access", session.accessToken)
         assertEquals("new-refresh", session.refreshToken)
         assertEquals("2", session.userId)
         assertEquals(session, dataSource.currentSession())
+        assertEquals("2" to "old-user", localUserDataRepository.lastPrepareRequest)
     }
 
     @Test
@@ -99,7 +106,11 @@ class AuthRepositoryImplTest {
                 )
             )
         }
-        val repository = AuthRepositoryImpl(api, dataSource)
+        val repository = AuthRepositoryImpl(
+            api,
+            dataSource,
+            FakeLocalUserDataRepository()
+        )
 
         val availability = repository.checkNicknameAvailability("  new-name  ")
         val session = repository.updateNickname("new-name")
@@ -129,9 +140,15 @@ class AuthRepositoryImplTest {
             )
         }
 
-        AuthRepositoryImpl(api, dataSource).deleteAccount()
+        val localUserDataRepository = FakeLocalUserDataRepository()
+        AuthRepositoryImpl(
+            api,
+            dataSource,
+            localUserDataRepository
+        ).deleteAccount()
 
         assertEquals(AuthSession(), dataSource.currentSession())
+        assertEquals(1, localUserDataRepository.clearAllCallCount)
     }
 
     @Test
@@ -156,7 +173,11 @@ class AuthRepositoryImplTest {
 
         assertThrows(UnauthorizedException::class.java) {
             runBlocking {
-                AuthRepositoryImpl(api, dataSource).refreshSession()
+                AuthRepositoryImpl(
+                    api,
+                    dataSource,
+                    FakeLocalUserDataRepository()
+                ).refreshSession()
             }
         }
         assertEquals(AuthSession(), runBlocking { dataSource.currentSession() })
@@ -170,6 +191,19 @@ class AuthRepositoryImplTest {
             }
         )
         return AuthPreferencesDataSource(dataStore)
+    }
+}
+
+private class FakeLocalUserDataRepository : LocalUserDataRepository {
+    var lastPrepareRequest: Pair<String, String>? = null
+    var clearAllCallCount: Int = 0
+
+    override suspend fun prepareForUser(userId: String, previousUserId: String) {
+        lastPrepareRequest = userId to previousUserId
+    }
+
+    override suspend fun clearAll() {
+        clearAllCallCount++
     }
 }
 

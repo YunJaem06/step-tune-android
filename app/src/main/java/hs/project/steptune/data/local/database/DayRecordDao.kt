@@ -19,5 +19,8 @@ interface DayRecordDao {
 
     @Upsert
     suspend fun upsert(record: DayRecordEntity)
+
+    @Query("DELETE FROM day_record")
+    suspend fun deleteAll()
 }
 
