@@ -21,7 +21,8 @@ class PedometerRepositoryImpl @Inject constructor(
                 steps = 0,
                 goal = 10_000,
                 distanceMeters = 0f,
-                calories = 0f
+                calories = 0f,
+                measuredAtEpochMillis = 0L
             )
         }
     }
@@ -43,7 +44,8 @@ class PedometerRepositoryImpl @Inject constructor(
                 steps = progress.steps,
                 goal = progress.goal,
                 distanceMeters = progress.distanceMeters,
-                calories = progress.calories
+                calories = progress.calories,
+                measuredAtEpochMillis = progress.measuredAtEpochMillis
             )
         )
     }
@@ -54,7 +56,8 @@ class PedometerRepositoryImpl @Inject constructor(
             steps = steps,
             goal = goal,
             distanceMeters = distanceMeters,
-            calories = calories
+            calories = calories,
+            measuredAtEpochMillis = measuredAtEpochMillis
         )
     }
 }

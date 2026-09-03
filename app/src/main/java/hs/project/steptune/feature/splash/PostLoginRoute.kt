@@ -24,11 +24,18 @@ fun PostLoginRoute(
     val viewModel: PostLoginViewModel = hiltViewModel()
     val context = LocalContext.current
     val preferences = viewModel.preferences.collectAsStateWithLifecycle(initialValue = null).value
+    val stepHistoryPrepared = viewModel.stepHistoryPrepared.collectAsStateWithLifecycle().value
     val hasActivityPermission = PermissionUtils.hasActivityRecognitionPermission(context)
     val hasNotificationPermission = PermissionUtils.hasNotificationPermission(context)
 
-    LaunchedEffect(preferences, hasActivityPermission, hasNotificationPermission) {
+    LaunchedEffect(
+        preferences,
+        stepHistoryPrepared,
+        hasActivityPermission,
+        hasNotificationPermission
+    ) {
         val currentPreferences = preferences ?: return@LaunchedEffect
+        if (!stepHistoryPrepared) return@LaunchedEffect
         if (
             currentPreferences.onboardingCompleted &&
             currentPreferences.musicPreferencesOnboardingCompleted &&

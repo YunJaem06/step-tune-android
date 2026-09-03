@@ -5,7 +5,8 @@ data class DailyProgress(
     val steps: Int,
     val goal: Int,
     val distanceMeters: Float,
-    val calories: Float
+    val calories: Float,
+    val measuredAtEpochMillis: Long
 ) {
     val progressRatio: Float
         get() = if (goal == 0) 0f else (steps.toFloat() / goal).coerceIn(0f, 1f)

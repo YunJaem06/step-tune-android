@@ -114,7 +114,8 @@ class LocalUserDataRepositoryImplTest {
         steps = 4_000,
         goal = 10_000,
         distanceMeters = 2_800f,
-        calories = 120f
+        calories = 120f,
+        measuredAtEpochMillis = 1_788_405_600_000L
     )
 
     private data class Fixture(

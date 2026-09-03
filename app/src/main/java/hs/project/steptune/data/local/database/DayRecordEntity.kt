@@ -1,5 +1,6 @@
 package hs.project.steptune.data.local.database
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -9,6 +10,8 @@ data class DayRecordEntity(
     val steps: Int = 0,
     val goal: Int = 10_000,
     val distanceMeters: Float = 0f,
-    val calories: Float = 0f
+    val calories: Float = 0f,
+    @ColumnInfo(defaultValue = "0")
+    val measuredAtEpochMillis: Long
 )
 

@@ -30,6 +30,8 @@ import hs.project.steptune.domain.model.StepMetricsCalculator
 import hs.project.steptune.domain.model.UserPreferences
 import hs.project.steptune.domain.repository.PedometerRepository
 import hs.project.steptune.domain.repository.SettingsRepository
+import hs.project.steptune.domain.usecase.SyncDailyStepRecordsUseCase
+import hs.project.steptune.util.LogUtil
 import javax.inject.Inject
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -40,6 +42,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -48,10 +51,12 @@ class StepTrackingService : Service(), SensorEventListener {
     @Inject lateinit var pedometerRepository: PedometerRepository
     @Inject lateinit var settingsRepository: SettingsRepository
     @Inject lateinit var trackingStateDataSource: StepTrackingStateDataSource
+    @Inject lateinit var syncDailyStepRecordsUseCase: SyncDailyStepRecordsUseCase
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val dependencyStateReady = CompletableDeferred<Unit>()
     private val stepReadings = Channel<Int>(capacity = Channel.CONFLATED)
+    private val stepSyncRequests = Channel<Unit>(capacity = Channel.CONFLATED)
     private lateinit var sensorManager: SensorManager
     private var stepCounterSensor: Sensor? = null
 
@@ -70,6 +75,7 @@ class StepTrackingService : Service(), SensorEventListener {
         stepCounterSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
         initializeDependencyState()
         consumeStepReadings()
+        consumeStepSyncRequests()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -113,6 +119,7 @@ class StepTrackingService : Service(), SensorEventListener {
         sensorManager.unregisterListener(this)
         stopForeground(STOP_FOREGROUND_REMOVE)
         stepReadings.close()
+        stepSyncRequests.close()
         serviceScope.cancel()
         super.onDestroy()
     }
@@ -148,6 +155,25 @@ class StepTrackingService : Service(), SensorEventListener {
                     stopSelf()
                     break
                 }
+            }
+        }
+    }
+
+    private fun consumeStepSyncRequests() {
+        serviceScope.launch {
+            for (request in stepSyncRequests) {
+                try {
+                    val recentRecords = pedometerRepository.observeDailyProgressRange(
+                        startDate = DateFormatter.daysAgo(RECENT_SYNC_DAYS - 1),
+                        endDate = DateFormatter.today()
+                    ).first()
+                    syncDailyStepRecordsUseCase(recentRecords)
+                } catch (exception: CancellationException) {
+                    throw exception
+                } catch (exception: Exception) {
+                    LogUtil.w("걸음 기록 동기화 실패: ${exception.message}")
+                }
+                delay(STEP_SYNC_INTERVAL_MILLIS)
             }
         }
     }
@@ -190,17 +216,18 @@ class StepTrackingService : Service(), SensorEventListener {
             weightKg = currentPreferences.weightKg
         )
 
-        pedometerRepository.upsertDailyProgress(
-            DailyProgress(
-                date = today,
-                steps = steps,
-                goal = currentPreferences.dailyGoal,
-                distanceMeters = distanceMeters,
-                calories = calories
-            )
+        val progress = DailyProgress(
+            date = today,
+            steps = steps,
+            goal = currentPreferences.dailyGoal,
+            distanceMeters = distanceMeters,
+            calories = calories,
+            measuredAtEpochMillis = System.currentTimeMillis()
         )
+        pedometerRepository.upsertDailyProgress(progress)
 
         lastSavedSteps = steps
+        stepSyncRequests.trySend(Unit)
         updateNotification(sensorAvailable = true)
     }
 
@@ -307,5 +334,7 @@ class StepTrackingService : Service(), SensorEventListener {
     companion object {
         private const val NOTIFICATION_CHANNEL_ID = "step_tracking_channel"
         private const val NOTIFICATION_ID = 1001
+        private const val STEP_SYNC_INTERVAL_MILLIS = 15 * 60 * 1_000L
+        private const val RECENT_SYNC_DAYS = 2
     }
 }

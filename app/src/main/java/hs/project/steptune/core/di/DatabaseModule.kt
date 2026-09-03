@@ -24,7 +24,8 @@ object DatabaseModule {
             context,
             StepTuneDatabase::class.java,
             StepTuneDatabase.DATABASE_NAME
-        ).build()
+        ).addMigrations(StepTuneDatabase.MIGRATION_1_2)
+            .build()
     }
 
     @Provides
