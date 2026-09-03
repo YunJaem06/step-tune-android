@@ -84,6 +84,16 @@
     <string name="progress_loading">걸음 정보를 불러오는 중...</string>
     <string name="stats_title">통계</string>
     <string name="stats_description">일간, 주간, 월간 기준으로 걸음 기록을 모아볼 수 있어요.</string>
+    <string name="stats_weekly_comparison_title">오늘과 최근 활동 비교</string>
+    <string name="stats_weekly_comparison_loading">서버 통계를 불러오는 중…</string>
+    <string name="stats_weekly_comparison_failed">주간 비교를 불러오지 못했어요. 서버 연결을 확인해 주세요.</string>
+    <string name="stats_weekly_comparison_recorded_days">최근 7일 중 기록된 %1$d일을 기준으로 비교했어요.</string>
+    <string name="stats_weekly_comparison_today">오늘</string>
+    <string name="stats_weekly_comparison_average">최근 7일 평균</string>
+    <string name="stats_weekly_comparison_above">평균보다 %1$,d보 높아요 (+%2$.1f%%)</string>
+    <string name="stats_weekly_comparison_below">평균보다 %1$,d보 낮아요 (-%2$.1f%%)</string>
+    <string name="stats_weekly_comparison_same">최근 평균과 같은 걸음 수예요.</string>
+    <string name="stats_weekly_comparison_not_enough">평균과 비교할 걸음 기록이 아직 부족해요.</string>
     <string name="stats_period_daily">일간</string>
     <string name="stats_period_weekly">주간</string>
     <string name="stats_period_monthly">월간</string>

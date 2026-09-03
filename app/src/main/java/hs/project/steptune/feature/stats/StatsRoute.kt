@@ -15,6 +15,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -28,15 +29,22 @@ import hs.project.steptune.domain.model.StatsOverview
 import hs.project.steptune.domain.model.StatsPeriod
 import hs.project.steptune.domain.model.StatsRecord
 import hs.project.steptune.domain.model.StatsSummary
+import hs.project.steptune.domain.model.WeeklyStepStatistics
 import hs.project.steptune.ui.theme.StepTuneTheme
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 @Composable
 fun StatsRoute() {
     val viewModel: StatsViewModel = hiltViewModel()
     val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
+    LaunchedEffect(Unit) {
+        viewModel.refreshWeeklyStatistics()
+    }
     ReportScreen(
         uiState = uiState,
-        onPeriodSelected = viewModel::onPeriodSelected
+        onPeriodSelected = viewModel::onPeriodSelected,
+        onRetryWeeklyStatistics = viewModel::refreshWeeklyStatistics
     )
 }
 
@@ -44,6 +52,7 @@ fun StatsRoute() {
 fun ReportScreen(
     uiState: StatsUiState,
     onPeriodSelected: (StatsPeriod) -> Unit,
+    onRetryWeeklyStatistics: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     if (uiState.isLoading) {
@@ -78,6 +87,13 @@ fun ReportScreen(
             text = stringResource(R.string.stats_description),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        WeeklyComparisonCard(
+            statistics = uiState.weeklyStatistics,
+            isLoading = uiState.isWeeklyStatisticsLoading,
+            loadFailed = uiState.weeklyStatisticsLoadFailed,
+            onRetry = onRetryWeeklyStatistics
         )
 
         Row(
@@ -153,6 +169,137 @@ fun ReportScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun WeeklyComparisonCard(
+    statistics: WeeklyStepStatistics?,
+    isLoading: Boolean,
+    loadFailed: Boolean,
+    onRetry: () -> Unit
+) {
+    Card {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.stats_weekly_comparison_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            when {
+                isLoading -> Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    CircularProgressIndicator()
+                    Text(
+                        text = stringResource(R.string.stats_weekly_comparison_loading),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                loadFailed || statistics == null -> {
+                    Text(
+                        text = stringResource(R.string.stats_weekly_comparison_failed),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    OutlinedButton(onClick = onRetry) {
+                        Text(stringResource(R.string.common_retry))
+                    }
+                }
+
+                else -> WeeklyComparisonContent(statistics)
+            }
+        }
+    }
+}
+
+@Composable
+private fun WeeklyComparisonContent(statistics: WeeklyStepStatistics) {
+    Text(
+        text = stringResource(
+            R.string.stats_weekly_comparison_recorded_days,
+            statistics.recordedDayCount
+        ),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        WeeklyComparisonMetric(
+            modifier = Modifier.weight(1f),
+            label = stringResource(R.string.stats_weekly_comparison_today),
+            value = "%,d %s".format(
+                statistics.todayStepCount,
+                stringResource(R.string.stats_steps_unit)
+            )
+        )
+        WeeklyComparisonMetric(
+            modifier = Modifier.weight(1f),
+            label = stringResource(R.string.stats_weekly_comparison_average),
+            value = "%,.0f %s".format(
+                statistics.recent7DayAverage,
+                stringResource(R.string.stats_steps_unit)
+            )
+        )
+    }
+
+    val comparisonText = when {
+        statistics.changeRatePercent == null ->
+            stringResource(R.string.stats_weekly_comparison_not_enough)
+
+        statistics.differenceFromAverage > 0 ->
+            stringResource(
+                R.string.stats_weekly_comparison_above,
+                abs(statistics.differenceFromAverage).roundToInt(),
+                abs(statistics.changeRatePercent)
+            )
+
+        statistics.differenceFromAverage < 0 ->
+            stringResource(
+                R.string.stats_weekly_comparison_below,
+                abs(statistics.differenceFromAverage).roundToInt(),
+                abs(statistics.changeRatePercent)
+            )
+
+        else -> stringResource(R.string.stats_weekly_comparison_same)
+    }
+    Text(
+        text = comparisonText,
+        style = MaterialTheme.typography.bodyLarge,
+        color = MaterialTheme.colorScheme.primary,
+        fontWeight = FontWeight.SemiBold
+    )
+}
+
+@Composable
+private fun WeeklyComparisonMetric(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
 
@@ -246,7 +393,8 @@ private fun ReportScreenPreview() {
                 ),
                 isLoading = false
             ),
-            onPeriodSelected = {}
+            onPeriodSelected = {},
+            onRetryWeeklyStatistics = {}
         )
     }
 }
