@@ -13,3 +13,7 @@ class UnauthorizedException(
 class ConflictException(
     message: String = "요청한 값이 현재 서버 상태와 충돌합니다."
 ) : ServerException(message)
+
+class NotFoundException(
+    message: String = "요청한 데이터를 찾을 수 없습니다."
+) : ServerException(message)

@@ -7,6 +7,7 @@ import dagger.hilt.components.SingletonComponent
 import hs.project.steptune.BuildConfig
 import hs.project.steptune.Config
 import hs.project.steptune.api.AuthAPI
+import hs.project.steptune.api.StepAPI
 import hs.project.steptune.api.client.AccessTokenAuthenticator
 import hs.project.steptune.api.client.BearerAuthInterceptor
 import hs.project.steptune.util.LogUtil
@@ -88,6 +89,11 @@ object NetworkModule {
     @Singleton
     fun provideAuthAPI(retrofit: Retrofit): AuthAPI =
         retrofit.create(AuthAPI::class.java)
+
+    @Provides
+    @Singleton
+    fun provideStepAPI(retrofit: Retrofit): StepAPI =
+        retrofit.create(StepAPI::class.java)
 
     @Provides
     @Singleton
