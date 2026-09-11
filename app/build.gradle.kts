@@ -55,6 +55,8 @@ android {
             )
         }
     }
+    // Keep Java, Kotlin, and KSP on JVM 17 across every development machine.
+    // Android Studio's Gradle JDK must also be set to JDK 17 to avoid target mismatches.
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
