@@ -1,7 +1,6 @@
 package hs.project.steptune.data.repository
 
 import hs.project.steptune.data.local.database.DayRecordDao
-import hs.project.steptune.data.local.database.MusicRecommendationDao
 import hs.project.steptune.data.local.preferences.LocalDataOwnerDataSource
 import hs.project.steptune.data.local.preferences.PedometerPreferencesDataSource
 import hs.project.steptune.domain.repository.LocalUserDataRepository
@@ -11,7 +10,6 @@ import javax.inject.Singleton
 @Singleton
 class LocalUserDataRepositoryImpl @Inject constructor(
     private val dayRecordDao: DayRecordDao,
-    private val musicRecommendationDao: MusicRecommendationDao,
     private val preferencesDataSource: PedometerPreferencesDataSource,
     private val ownerDataSource: LocalDataOwnerDataSource
 ) : LocalUserDataRepository {
@@ -40,7 +38,6 @@ class LocalUserDataRepositoryImpl @Inject constructor(
 
     private suspend fun clearLocalRecordsAndPreferences() {
         dayRecordDao.deleteAll()
-        musicRecommendationDao.deleteAll()
         preferencesDataSource.clearAll()
     }
 }

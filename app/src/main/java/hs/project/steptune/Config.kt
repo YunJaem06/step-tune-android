@@ -17,5 +17,9 @@ object Config {
         const val STEP_DAILY_RECORD_HISTORY = "api/v1/steps/daily-records/history"
         const val STEP_WEEKLY_STATISTICS = "api/v1/steps/statistics/weekly"
         const val MUSIC_RECOMMENDATION_GENERATE = "api/v1/music-recommendations/generate"
+        const val MUSIC_RECOMMENDATION_HISTORY = "api/v1/music-recommendations/history"
+        const val MUSIC_RECOMMENDATION_FAVORITE =
+            "api/v1/music-recommendations/{recommendationId}/favorite"
+        const val MUSIC_RECOMMENDATION = "api/v1/music-recommendations/{recommendationId}"
     }
 }

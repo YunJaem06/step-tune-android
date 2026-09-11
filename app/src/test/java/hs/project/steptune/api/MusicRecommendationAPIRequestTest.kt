@@ -2,6 +2,7 @@ package hs.project.steptune.api
 
 import com.google.gson.Gson
 import hs.project.steptune.data.recommendation.request.RequestGenerateMusicRecommendation
+import hs.project.steptune.data.recommendation.request.RequestUpdateMusicRecommendationFavorite
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Test
@@ -28,5 +29,15 @@ class MusicRecommendationAPIRequestTest {
         assertEquals(30, json["durationMinutes"].asInt)
         assertFalse(json.has("userId"))
         assertFalse(json.has("stepCount"))
+    }
+
+    @Test
+    fun `favorite request contains only the target state`() {
+        val json = Gson().toJsonTree(
+            RequestUpdateMusicRecommendationFavorite(favorite = true)
+        ).asJsonObject
+
+        assertEquals(setOf("favorite"), json.keySet())
+        assertEquals(true, json["favorite"].asBoolean)
     }
 }

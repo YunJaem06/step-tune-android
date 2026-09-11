@@ -24,5 +24,17 @@ data class ResponseMusicRecommendation(
     val durationMinutes: Int,
     val reason: String,
     val track: ResponseRecommendedTrack,
+    val favorite: Boolean = false,
     val generatedAt: String
+)
+
+data class ResponseMusicRecommendationHistory(
+    val userId: Long,
+    val recommendations: List<ResponseMusicRecommendation>,
+    val favoriteOnly: Boolean,
+    val page: Int,
+    val size: Int,
+    val totalElements: Long,
+    val totalPages: Int,
+    val hasNext: Boolean
 )

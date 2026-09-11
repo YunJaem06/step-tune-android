@@ -33,5 +33,16 @@ data class MusicRecommendation(
     val durationMinutes: Int,
     val reason: String,
     val track: RecommendedTrack,
+    val favorite: Boolean = false,
     val generatedAt: String
+)
+
+@Immutable
+data class MusicRecommendationHistoryPage(
+    val recommendations: List<MusicRecommendation>,
+    val favoriteOnly: Boolean,
+    val page: Int,
+    val totalElements: Long,
+    val totalPages: Int,
+    val hasNext: Boolean
 )

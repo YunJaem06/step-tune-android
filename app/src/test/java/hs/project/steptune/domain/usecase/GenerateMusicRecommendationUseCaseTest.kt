@@ -8,6 +8,7 @@ import hs.project.steptune.domain.model.DailyStepRecordWrite
 import hs.project.steptune.domain.model.MusicGenre
 import hs.project.steptune.domain.model.MusicMood
 import hs.project.steptune.domain.model.MusicRecommendation
+import hs.project.steptune.domain.model.MusicRecommendationHistoryPage
 import hs.project.steptune.domain.model.RecommendedTrack
 import hs.project.steptune.domain.model.RecommendationActivityLevel
 import hs.project.steptune.domain.model.RecommendationStepSummary
@@ -188,4 +189,17 @@ private class RecommendationFakeRepository(
             generatedAt = "2026-09-08T00:00:00Z"
         )
     }
+
+    override suspend fun getHistory(
+        page: Int,
+        size: Int,
+        favoriteOnly: Boolean
+    ): MusicRecommendationHistoryPage = error("not used")
+
+    override suspend fun updateFavorite(
+        recommendationId: String,
+        favorite: Boolean
+    ): MusicRecommendation = error("not used")
+
+    override suspend fun delete(recommendationId: String) = error("not used")
 }

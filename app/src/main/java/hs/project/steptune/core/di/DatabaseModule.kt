@@ -8,7 +8,6 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import hs.project.steptune.data.local.database.DayRecordDao
-import hs.project.steptune.data.local.database.MusicRecommendationDao
 import hs.project.steptune.data.local.database.StepTuneDatabase
 import javax.inject.Singleton
 
@@ -28,17 +27,13 @@ object DatabaseModule {
         ).addMigrations(
             StepTuneDatabase.MIGRATION_1_2,
             StepTuneDatabase.MIGRATION_2_3,
-            StepTuneDatabase.MIGRATION_3_4
+            StepTuneDatabase.MIGRATION_3_4,
+            StepTuneDatabase.MIGRATION_4_5
         )
             .build()
     }
 
     @Provides
     fun provideDayRecordDao(database: StepTuneDatabase): DayRecordDao = database.dayRecordDao()
-
-    @Provides
-    fun provideMusicRecommendationDao(
-        database: StepTuneDatabase
-    ): MusicRecommendationDao = database.musicRecommendationDao()
 }
 

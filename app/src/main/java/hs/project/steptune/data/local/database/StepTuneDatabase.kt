@@ -6,14 +6,13 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [DayRecordEntity::class, MusicRecommendationEntity::class],
-    version = 4,
+    entities = [DayRecordEntity::class],
+    version = 5,
     exportSchema = false
 )
 abstract class StepTuneDatabase : RoomDatabase() {
 
     abstract fun dayRecordDao(): DayRecordDao
-    abstract fun musicRecommendationDao(): MusicRecommendationDao
 
     companion object {
         const val DATABASE_NAME = "steptune.db"
@@ -68,6 +67,12 @@ abstract class StepTuneDatabase : RoomDatabase() {
                 database.execSQL(
                     "ALTER TABLE `music_recommendation` ADD COLUMN `trackSearchQuery` TEXT"
                 )
+            }
+        }
+
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("DROP TABLE IF EXISTS `music_recommendation`")
             }
         }
     }
