@@ -48,15 +48,21 @@ import hs.project.steptune.ui.theme.StepMint
 import hs.project.steptune.ui.theme.StepTuneTheme
 
 @Composable
-fun HomeRoute() {
+fun HomeRoute(
+    onRecommendationClick: () -> Unit
+) {
     val viewModel: HomeViewModel = hiltViewModel()
     val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
-    HomeScreen(uiState = uiState)
+    HomeScreen(
+        uiState = uiState,
+        onRecommendationClick = onRecommendationClick
+    )
 }
 
 @Composable
 fun HomeScreen(
     uiState: HomeUiState,
+    onRecommendationClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     if (uiState.isLoading) {
@@ -110,7 +116,7 @@ fun HomeScreen(
             )
         }
 
-        MusicRecommendationCard()
+        MusicRecommendationCard(onClick = onRecommendationClick)
 
         WeeklyActivityCard(records = uiState.weeklyRecords)
     }
@@ -294,7 +300,7 @@ private fun MetricCard(
 }
 
 @Composable
-private fun MusicRecommendationCard() {
+private fun MusicRecommendationCard(onClick: () -> Unit) {
     Card(
         shape = RoundedCornerShape(26.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
@@ -331,16 +337,19 @@ private fun MusicRecommendationCard() {
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.76f)
                 )
-                Surface(
+                Button(
                     modifier = Modifier.padding(top = 6.dp),
+                    onClick = onClick,
                     shape = RoundedCornerShape(999.dp),
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        contentColor = MaterialTheme.colorScheme.primary
+                    )
                 ) {
                     Text(
-                        text = stringResource(R.string.home_music_recommendation_preparing),
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        text = stringResource(R.string.home_music_recommendation_action),
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
@@ -433,7 +442,8 @@ private fun HomeScreenPreview() {
                     StatsRecord("8/12", 7620)
                 ),
                 isLoading = false
-            )
+            ),
+            onRecommendationClick = {}
         )
     }
 }

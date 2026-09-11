@@ -68,8 +68,8 @@
     <string name="progress_percent_format">%1$d%% 달성</string>
     <string name="steps_format">%1$,d보</string>
     <string name="home_music_recommendation_title">지금 기분에 맞는 음악</string>
-    <string name="home_music_recommendation_description">오늘 활동과 기분에 어울리는 산책 플레이리스트를 준비해드릴게요.</string>
-    <string name="home_music_recommendation_preparing">추천 기능 준비 중</string>
+    <string name="home_music_recommendation_description">오늘 활동과 음악 취향에 맞는 산책 음악 한 곡을 추천해드릴게요.</string>
+    <string name="home_music_recommendation_action">추천받기</string>
     <string name="home_weekly_activity_title">이번 주 활동</string>
     <string name="home_weekly_activity_empty">걸음을 기록하면 이번 주 활동 흐름이 여기에 표시돼요.</string>
     <string name="progress_goal_label">목표</string>
@@ -150,5 +150,32 @@
     <string name="settings_save_music_preferences">음악 취향 저장</string>
     <string name="settings_music_preferences_saved">음악 취향이 저장되었습니다.</string>
     <string name="settings_music_preferences_save_failed">음악 취향을 저장하지 못했습니다.</string>
+    <string name="recommendation_back">뒤로</string>
+    <string name="recommendation_title">산책 음악 추천</string>
+    <string name="recommendation_form_title">오늘 걷기에 맞는 음악을 찾아볼까요?</string>
+    <string name="recommendation_form_description">오늘 걸음 기록과 선택한 음악 취향을 바탕으로 AI가 실제 발매곡 한 곡을 추천해요.</string>
+    <string name="recommendation_duration_title">추천 재생 시간</string>
+    <string name="recommendation_minutes_format">%1$d분</string>
+    <string name="recommendation_generate">음악 추천받기</string>
+    <string name="recommendation_generating">추천을 만들고 있어요…</string>
+    <string name="recommendation_result_title">오늘의 추천곡</string>
+    <string name="recommendation_result_description">AI가 오늘의 활동과 음악 취향을 함께 고려해 골랐어요.</string>
+    <string name="recommendation_track_label">추천 음악</string>
+    <string name="recommendation_reason_title">추천 이유</string>
+    <string name="recommendation_activity_level">오늘 활동량</string>
+    <string name="recommendation_activity_low">가벼운 활동</string>
+    <string name="recommendation_activity_moderate">적당한 활동</string>
+    <string name="recommendation_activity_high">활발한 활동</string>
+    <string name="recommendation_today_steps">오늘 걸음</string>
+    <string name="recommendation_recent_average">최근 7일 평균</string>
+    <string name="recommendation_open_youtube">YouTube에서 검색하기</string>
+    <string name="recommendation_track_search_description">추천곡의 아티스트와 제목으로 YouTube 검색 결과를 열어요.</string>
+    <string name="recommendation_request_another">조건을 바꿔 다른 곡 추천받기</string>
+    <string name="recommendation_error_today_record">오늘 걸음 기록을 동기화하지 못했어요. 잠시 후 다시 시도해 주세요.</string>
+    <string name="recommendation_error_rate_limit">무료 AI 요청 한도에 도달했어요. 잠시 후 다시 시도해 주세요.</string>
+    <string name="recommendation_error_service_unavailable">AI 추천이 꺼져 있거나 서버에서 사용할 수 없어요. 서버의 Gemini 설정을 확인해 주세요.</string>
+    <string name="recommendation_error_invalid_response">AI 추천 결과를 처리하지 못했어요. 다시 시도해 주세요.</string>
+    <string name="recommendation_error_request_failed">추천 요청을 처리하지 못했어요. 입력 조건과 서버 상태를 확인해 주세요.</string>
+    <string name="recommendation_error_network">서버에 연결하지 못했어요. 네트워크와 서버 실행 상태를 확인해 주세요.</string>
 </resources>
 

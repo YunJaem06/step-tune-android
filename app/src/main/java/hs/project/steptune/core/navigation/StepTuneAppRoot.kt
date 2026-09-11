@@ -27,6 +27,7 @@ import hs.project.steptune.core.auth.AuthSessionEvent
 import hs.project.steptune.feature.home.HomeRoute
 import hs.project.steptune.feature.login.LoginRoute
 import hs.project.steptune.feature.onboarding.OnboardingRoute
+import hs.project.steptune.feature.recommendation.MusicRecommendationRoute
 import hs.project.steptune.feature.settings.SettingsRoute
 import hs.project.steptune.feature.splash.PostLoginRoute
 import hs.project.steptune.feature.splash.SplashRoute
@@ -163,7 +164,14 @@ fun StepTuneAppRoot() {
                 )
             }
             composable(TopLevelDestination.Progress.route) {
-                HomeRoute()
+                HomeRoute(
+                    onRecommendationClick = {
+                        navController.navigate(AppDestination.MusicRecommendation.route)
+                    }
+                )
+            }
+            composable(AppDestination.MusicRecommendation.route) {
+                MusicRecommendationRoute(onBack = navController::navigateUp)
             }
             composable(TopLevelDestination.Stats.route) {
                 StatsRoute()
