@@ -11,6 +11,7 @@ import hs.project.steptune.api.StepAPI
 import hs.project.steptune.api.client.AccessTokenAuthenticator
 import hs.project.steptune.api.client.BearerAuthInterceptor
 import hs.project.steptune.util.LogUtil
+import hs.project.steptune.util.NetworkLogMasker
 import javax.inject.Singleton
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -53,7 +54,7 @@ object NetworkModule {
     @Singleton
     fun provideHttpLoggingInterceptor(): HttpLoggingInterceptor =
         HttpLoggingInterceptor { message ->
-            LogUtil.d(message)
+            LogUtil.d(NetworkLogMasker.mask(message))
         }.apply {
             level = if (BuildConfig.DEBUG) {
                 HttpLoggingInterceptor.Level.BODY
