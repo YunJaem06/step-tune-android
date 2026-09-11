@@ -5,6 +5,8 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import hs.project.steptune.data.local.database.DayRecordDao
 import hs.project.steptune.data.local.database.DayRecordEntity
+import hs.project.steptune.data.local.database.MusicRecommendationDao
+import hs.project.steptune.data.local.database.MusicRecommendationEntity
 import hs.project.steptune.data.local.preferences.LocalDataOwnerDataSource
 import hs.project.steptune.data.local.preferences.PedometerPreferences
 import hs.project.steptune.data.local.preferences.PedometerPreferencesDataSource
@@ -46,6 +48,7 @@ class LocalUserDataRepositoryImplTest {
         fixture.repository.prepareForUser(userId = "1", previousUserId = "1")
 
         assertEquals(0, fixture.dao.deleteAllCallCount)
+        assertEquals(0, fixture.recommendationDao.deleteAllCallCount)
         assertEquals(12_000, fixture.preferencesDataSource.preferences.first().dailyGoal)
         assertEquals(testRecord(), fixture.dao.getDayRecord(TEST_DATE))
     }
@@ -61,6 +64,7 @@ class LocalUserDataRepositoryImplTest {
         fixture.repository.prepareForUser(userId = "2", previousUserId = "")
 
         assertEquals(1, fixture.dao.deleteAllCallCount)
+        assertEquals(1, fixture.recommendationDao.deleteAllCallCount)
         assertEquals(null, fixture.dao.getDayRecord(TEST_DATE))
         assertEquals(PedometerPreferences(), fixture.preferencesDataSource.preferences.first())
         assertEquals(StepTrackingState(), fixture.trackingStateDataSource.state.first())
@@ -87,16 +91,19 @@ class LocalUserDataRepositoryImplTest {
         val settingsDataStore = createDataStore("settings.preferences_pb")
         val authDataStore = createDataStore("auth.preferences_pb")
         val dao = FakeDayRecordDao()
+        val recommendationDao = FakeMusicRecommendationDao()
         val preferencesDataSource = PedometerPreferencesDataSource(settingsDataStore)
         val trackingStateDataSource = StepTrackingStateDataSource(settingsDataStore)
         val ownerDataSource = LocalDataOwnerDataSource(authDataStore)
         return Fixture(
             dao = dao,
+            recommendationDao = recommendationDao,
             preferencesDataSource = preferencesDataSource,
             trackingStateDataSource = trackingStateDataSource,
             ownerDataSource = ownerDataSource,
             repository = LocalUserDataRepositoryImpl(
                 dayRecordDao = dao,
+                musicRecommendationDao = recommendationDao,
                 preferencesDataSource = preferencesDataSource,
                 ownerDataSource = ownerDataSource
             )
@@ -120,6 +127,7 @@ class LocalUserDataRepositoryImplTest {
 
     private data class Fixture(
         val dao: FakeDayRecordDao,
+        val recommendationDao: FakeMusicRecommendationDao,
         val preferencesDataSource: PedometerPreferencesDataSource,
         val trackingStateDataSource: StepTrackingStateDataSource,
         val ownerDataSource: LocalDataOwnerDataSource,
@@ -154,5 +162,22 @@ private class FakeDayRecordDao : DayRecordDao {
     override suspend fun deleteAll() {
         deleteAllCallCount++
         records.clear()
+    }
+}
+
+private class FakeMusicRecommendationDao : MusicRecommendationDao {
+    private val recommendations = linkedMapOf<String, MusicRecommendationEntity>()
+    var deleteAllCallCount: Int = 0
+
+    override suspend fun upsert(recommendation: MusicRecommendationEntity) {
+        recommendations[recommendation.recommendationId] = recommendation
+    }
+
+    override fun observeAll(): Flow<List<MusicRecommendationEntity>> =
+        flowOf(recommendations.values.toList())
+
+    override suspend fun deleteAll() {
+        deleteAllCallCount++
+        recommendations.clear()
     }
 }

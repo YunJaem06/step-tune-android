@@ -16,5 +16,6 @@ object Config {
         const val STEP_DAILY_RECORD_BY_DATE = "api/v1/steps/daily-records/by-date"
         const val STEP_DAILY_RECORD_HISTORY = "api/v1/steps/daily-records/history"
         const val STEP_WEEKLY_STATISTICS = "api/v1/steps/statistics/weekly"
+        const val MUSIC_RECOMMENDATION_GENERATE = "api/v1/music-recommendations/generate"
     }
 }

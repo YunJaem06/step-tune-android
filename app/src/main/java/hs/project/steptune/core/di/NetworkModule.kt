@@ -7,6 +7,7 @@ import dagger.hilt.components.SingletonComponent
 import hs.project.steptune.BuildConfig
 import hs.project.steptune.Config
 import hs.project.steptune.api.AuthAPI
+import hs.project.steptune.api.MusicRecommendationAPI
 import hs.project.steptune.api.StepAPI
 import hs.project.steptune.api.client.AccessTokenAuthenticator
 import hs.project.steptune.api.client.BearerAuthInterceptor
@@ -95,6 +96,11 @@ object NetworkModule {
     @Singleton
     fun provideStepAPI(retrofit: Retrofit): StepAPI =
         retrofit.create(StepAPI::class.java)
+
+    @Provides
+    @Singleton
+    fun provideMusicRecommendationAPI(retrofit: Retrofit): MusicRecommendationAPI =
+        retrofit.create(MusicRecommendationAPI::class.java)
 
     @Provides
     @Singleton
