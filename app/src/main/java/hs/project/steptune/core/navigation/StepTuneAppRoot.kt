@@ -26,6 +26,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import hs.project.steptune.core.auth.AuthSessionEvent
 import hs.project.steptune.feature.home.HomeRoute
 import hs.project.steptune.feature.login.LoginRoute
+import hs.project.steptune.feature.musiclibrary.MusicLibraryRoute
 import hs.project.steptune.feature.onboarding.OnboardingRoute
 import hs.project.steptune.feature.recommendation.MusicRecommendationRoute
 import hs.project.steptune.feature.settings.SettingsRoute
@@ -175,6 +176,13 @@ fun StepTuneAppRoot() {
             }
             composable(TopLevelDestination.Stats.route) {
                 StatsRoute()
+            }
+            composable(TopLevelDestination.Music.route) {
+                MusicLibraryRoute(
+                    onRecommendationClick = {
+                        navController.navigate(AppDestination.MusicRecommendation.route)
+                    }
+                )
             }
             composable(TopLevelDestination.Settings.route) {
                 SettingsRoute(

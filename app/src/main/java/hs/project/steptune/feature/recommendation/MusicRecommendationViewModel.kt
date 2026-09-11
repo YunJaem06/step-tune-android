@@ -13,6 +13,7 @@ import hs.project.steptune.domain.model.MusicMood
 import hs.project.steptune.domain.model.MusicPreferenceRules
 import hs.project.steptune.domain.usecase.GenerateMusicRecommendationUseCase
 import hs.project.steptune.domain.usecase.ObserveUserPreferencesUseCase
+import hs.project.steptune.domain.usecase.UpdateMusicRecommendationFavoriteUseCase
 import hs.project.steptune.feature.musicpreference.MusicPreferenceSelectionUiState
 import java.io.IOException
 import javax.inject.Inject
@@ -27,7 +28,8 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class MusicRecommendationViewModel @Inject constructor(
     private val observeUserPreferencesUseCase: ObserveUserPreferencesUseCase,
-    private val generateMusicRecommendationUseCase: GenerateMusicRecommendationUseCase
+    private val generateMusicRecommendationUseCase: GenerateMusicRecommendationUseCase,
+    private val updateFavoriteUseCase: UpdateMusicRecommendationFavoriteUseCase
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(MusicRecommendationUiState())
     val uiState: StateFlow<MusicRecommendationUiState> = _uiState.asStateFlow()
@@ -105,8 +107,42 @@ class MusicRecommendationViewModel @Inject constructor(
     }
 
     fun requestAnotherRecommendation() {
-        if (_uiState.value.isGenerating) return
+        if (_uiState.value.isGenerating || _uiState.value.isUpdatingFavorite) return
         _uiState.update { it.copy(recommendation = null, error = null) }
+    }
+
+    fun toggleFavorite() {
+        val recommendation = _uiState.value.recommendation ?: return
+        if (_uiState.value.isUpdatingFavorite) return
+        _uiState.update { it.copy(isUpdatingFavorite = true, error = null) }
+        viewModelScope.launch {
+            try {
+                val updated = updateFavoriteUseCase(
+                    recommendationId = recommendation.recommendationId,
+                    favorite = !recommendation.favorite
+                )
+                _uiState.update {
+                    it.copy(
+                        isUpdatingFavorite = false,
+                        recommendation = updated,
+                        error = null
+                    )
+                }
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (exception: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isUpdatingFavorite = false,
+                        error = if (exception is IOException) {
+                            MusicRecommendationError.NETWORK
+                        } else {
+                            MusicRecommendationError.REQUEST_FAILED
+                        }
+                    )
+                }
+            }
+        }
     }
 
     private fun loadPreferences() {

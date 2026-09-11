@@ -21,6 +21,12 @@ sealed class TopLevelDestination(
         iconRes = R.drawable.ic_nav_stats
     )
 
+    data object Music : TopLevelDestination(
+        route = "music_library",
+        labelRes = R.string.navigation_music,
+        iconRes = R.drawable.ic_nav_music
+    )
+
     data object Settings : TopLevelDestination(
         route = "settings",
         labelRes = R.string.navigation_settings,
@@ -29,6 +35,6 @@ sealed class TopLevelDestination(
 
     companion object {
         val items: List<TopLevelDestination>
-            get() = listOf(Progress, Stats, Settings)
+            get() = listOf(Progress, Stats, Music, Settings)
     }
 }

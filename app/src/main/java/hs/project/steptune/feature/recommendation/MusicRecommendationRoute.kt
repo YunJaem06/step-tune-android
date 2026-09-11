@@ -60,6 +60,7 @@ fun MusicRecommendationRoute(
         onDurationSelected = viewModel::onDurationSelected,
         onGenerate = viewModel::generateRecommendation,
         onRequestAnother = viewModel::requestAnotherRecommendation,
+        onFavoriteToggle = viewModel::toggleFavorite,
         onOpenSearch = { searchQuery ->
             val intent = Intent(Intent.ACTION_VIEW, searchQuery.toYoutubeSearchUri())
             runCatching { context.startActivity(intent) }
@@ -76,6 +77,7 @@ fun MusicRecommendationScreen(
     onDurationSelected: (Int) -> Unit,
     onGenerate: () -> Unit,
     onRequestAnother: () -> Unit,
+    onFavoriteToggle: () -> Unit,
     onOpenSearch: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -99,7 +101,10 @@ fun MusicRecommendationScreen(
             } else {
                 RecommendationResult(
                     recommendation = uiState.recommendation,
+                    isUpdatingFavorite = uiState.isUpdatingFavorite,
+                    error = uiState.error,
                     onOpenSearch = onOpenSearch,
+                    onFavoriteToggle = onFavoriteToggle,
                     onRequestAnother = onRequestAnother
                 )
             }
@@ -250,7 +255,10 @@ private fun RecommendationErrorCard(error: MusicRecommendationError) {
 @Composable
 private fun RecommendationResult(
     recommendation: MusicRecommendation,
+    isUpdatingFavorite: Boolean,
+    error: MusicRecommendationError?,
     onOpenSearch: (String) -> Unit,
+    onFavoriteToggle: () -> Unit,
     onRequestAnother: () -> Unit
 ) {
     Surface(
@@ -404,6 +412,44 @@ private fun RecommendationResult(
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant
     )
+
+    OutlinedButton(
+        onClick = onFavoriteToggle,
+        enabled = !isUpdatingFavorite,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        if (isUpdatingFavorite) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(20.dp),
+                strokeWidth = 2.dp
+            )
+        } else {
+            Icon(
+                painter = painterResource(
+                    if (recommendation.favorite) {
+                        R.drawable.ic_favorite
+                    } else {
+                        R.drawable.ic_favorite_border
+                    }
+                ),
+                contentDescription = null,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        Text(
+            text = stringResource(
+                if (recommendation.favorite) {
+                    R.string.recommendation_remove_favorite
+                } else {
+                    R.string.recommendation_add_favorite
+                }
+            ),
+            modifier = Modifier.padding(start = 8.dp)
+        )
+    }
+
+    error?.let { RecommendationErrorCard(it) }
 
     OutlinedButton(
         onClick = onRequestAnother,

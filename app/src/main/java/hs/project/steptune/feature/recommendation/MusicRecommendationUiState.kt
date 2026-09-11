@@ -19,11 +19,12 @@ data class MusicRecommendationUiState(
     val durationMinutes: Int = DEFAULT_DURATION_MINUTES,
     val isLoadingPreferences: Boolean = true,
     val isGenerating: Boolean = false,
+    val isUpdatingFavorite: Boolean = false,
     val recommendation: MusicRecommendation? = null,
     val error: MusicRecommendationError? = null
 ) {
     val canGenerate: Boolean
-        get() = !isLoadingPreferences && !isGenerating
+        get() = !isLoadingPreferences && !isGenerating && !isUpdatingFavorite
 
     companion object {
         const val DEFAULT_DURATION_MINUTES = 30

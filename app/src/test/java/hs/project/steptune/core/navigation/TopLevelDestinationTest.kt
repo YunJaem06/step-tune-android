@@ -10,7 +10,7 @@ class TopLevelDestinationTest {
         assertEquals("progress", TopLevelDestination.Progress.route)
 
         assertEquals(
-            listOf("progress", "stats", "settings"),
+            listOf("progress", "stats", "music_library", "settings"),
             TopLevelDestination.items.map { destination -> destination.route }
         )
     }
