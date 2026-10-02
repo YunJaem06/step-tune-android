@@ -31,38 +31,29 @@ Play Store 출시보다는 Android 앱 아키텍처, 로컬 데이터 관리, �
 
 ## 현재 아키텍처
 
-현재는 하나의 `:app` Gradle 모듈 안에서 패키지를 책임별로 분리한 구조입니다.
+멀티 모듈 전환 5단계까지 완료해 공통 코드, Compose 디자인 시스템, Domain, Data와 음악 Feature를 별도 모듈로 분리했습니다. 나머지 Feature와 걸음 측정 서비스는 아직 `:app` 모듈 안에서 책임별 패키지로 분리되어 있습니다.
 
 ```text
-app/src/main/java/hs/project/steptune/
-├── api/                 # Retrofit API와 인증 클라이언트
+step-tune-android/
+├── app/src/main/java/hs/project/steptune/
+│   ├── core/                # App 설정 주입, Navigation, Android 공통 기능
+│   ├── feature/             # 로그인, 온보딩, 홈, 통계와 설정
+│   └── service/             # 걸음 측정 서비스와 부팅 Receiver
 ├── core/
-│   ├── auth/            # 인증 세션 이벤트
-│   ├── di/              # Hilt 모듈
-│   ├── navigation/      # 앱 전체 Navigation
-│   └── util/            # 날짜, 권한 등 공통 기능
-├── data/
-│   ├── auth/            # 인증 DTO
-│   ├── local/           # Room과 DataStore
-│   ├── recommendation/  # 추천 요청·응답 DTO
-│   ├── step/            # 걸음 API 요청·응답 DTO
-│   └── repository/      # Repository 구현체
-├── domain/
-│   ├── model/           # 앱에서 사용하는 도메인 모델
-│   ├── repository/      # Repository 인터페이스
-│   └── usecase/         # 비즈니스 유스케이스
-├── feature/
-│   ├── home/
-│   ├── login/
-│   ├── musiclibrary/
-│   ├── musicpreference/
-│   ├── onboarding/
-│   ├── recommendation/
-│   ├── settings/
-│   ├── splash/
-│   └── stats/
-├── service/             # 걸음 측정 서비스와 부팅 Receiver
-└── ui/theme/            # Compose 테마
+│   ├── common/              # 날짜 처리, 인증 이벤트와 공통 테스트
+│   ├── designsystem/        # Compose 테마, 공통 아이콘과 문구
+│   └── ui/                  # Domain 모델을 사용하는 공유 UI (음악 취향 선택)
+├── domain/                  # 모델, 오류, Repository 계약, UseCase와 테스트
+├── data/src/main/kotlin/hs/project/steptune/
+│   ├── api/                 # Retrofit API, Bearer Interceptor와 Authenticator
+│   ├── data/
+│   │   ├── config/          # API 경로와 주입받는 NetworkConfig
+│   │   ├── di/              # Network, Room, DataStore와 Repository Hilt 설정
+│   │   ├── local/           # Room, DataStore
+│   │   ├── auth/, step/, ... # 요청·응답 DTO
+│   │   └── repository/      # Domain Repository 구현체
+│   └── util/                # 네트워크 로그 토큰 마스킹
+└── feature/music/           # 추천 생성, 추천 기록·보관함과 전용 문구
 ```
 
 현재 Presentation 구조는 MVVM을 사용하며, `UiState`를 관찰하고 UI 이벤트를 ViewModel로 전달하는 단방향 데이터 흐름을 함께 적용하고 있습니다.
@@ -88,7 +79,24 @@ Retrofit / Room / DataStore
 | Feature | Compose 화면, UI 상태, 사용자 이벤트 처리 |
 | Domain | 모델, Repository 계약, 비즈니스 규칙 |
 | Data | 서버·Room·DataStore 접근과 DTO 변환 |
-| Core | 내비게이션, DI, 인증 이벤트와 공통 기능 |
+| Core | 인증 이벤트, 날짜 처리, Compose 디자인 시스템과 공유 UI |
+| App | Application, Navigation, 걸음 측정 서비스와 실행 설정 주입 |
+
+### Data 모듈 설정
+
+`local.properties`에서 읽는 서버 URL과 Google Web Client ID는 App의 `BuildConfig`에 유지합니다. App의 `AppConfigurationModule`이 서버 URL, 디버그 HTTP 로그 활성화 여부와 로그 출력 함수를 `NetworkConfig`로 묶어 Hilt에 제공하며, Data의 `NetworkModule`이 이를 사용합니다. Data 모듈은 App의 `Config`나 `BuildConfig`를 직접 참조하지 않습니다.
+
+API 경로는 Data의 `ApiEndpoints`에 모았습니다. 디버그 BODY 로그의 토큰 마스킹과 릴리스 로그 비활성화 정책을 유지합니다. Room DB 이름·버전·Migration과 DataStore 파일명·키는 기존 값을 그대로 사용하므로, 모듈 이동에 따른 로컬 데이터 초기화는 필요하지 않습니다.
+
+인증 만료 이벤트 버스는 `:core:common`에서 App과 Data가 공유합니다. 화면에서 처리하는 인증·추천 오류 타입은 `:domain`에 위치하며, Feature는 Domain의 모델·UseCase·오류 타입을 사용합니다.
+
+### 음악 Feature와 공유 UI
+
+`:feature:music`은 추천 생성과 추천 기록·보관함의 Route, Screen, ViewModel, UiState와 전용 문구를 소유합니다. Domain UseCase로 데이터에 접근하며 App이나 Data 모듈을 참조하지 않습니다. App의 Navigation은 기존 `MusicRecommendationRoute(onBack)`와 `MusicLibraryRoute(onRecommendationClick)`을 호출합니다.
+
+음악 취향 선택 컴포넌트와 상태는 온보딩·설정·추천 화면에서 함께 사용하므로 `:core:ui`에 두었습니다. 이 모듈은 Domain 모델을 사용하는 공유 UI를 담당합니다. `:core:designsystem`은 Domain에 의존하지 않으며 테마, 공통 아이콘과 문구를 관리합니다.
+
+음악 화면은 현재 MVVM을 유지합니다. 다음 6단계에서 화면 상태와 입력, 일회성 동작을 MVI Contract로 정리합니다.
 
 ## 데이터 저장 책임
 
@@ -125,7 +133,8 @@ step-tune-android/
 ├── app/                  # Application, MainActivity, 전체 Navigation
 ├── core/
 │   ├── common/           # Android 비의존 공통 기능
-│   └── designsystem/     # Compose Theme과 공통 UI
+│   ├── designsystem/     # Compose Theme, 공통 아이콘과 문구
+│   └── ui/               # Domain 모델을 사용하는 공유 UI
 ├── domain/               # 순수 Kotlin 모델, Repository 계약, UseCase
 ├── data/                 # Retrofit, Room, DataStore, Repository 구현
 └── feature/
@@ -148,6 +157,9 @@ step-tune-android/
 
 :feature:* ─────────→ :domain
 :feature:* ─────────→ :core:designsystem
+:feature:* ─────────→ :core:ui
+:core:ui ───────────→ :domain
+:core:ui ───────────→ :core:designsystem
 :data ──────────────→ :domain
 :data ──────────────→ :core:common
 ```
@@ -215,6 +227,8 @@ fun MusicLibraryScreen(
 ## 멀티 모듈 전환 순서
 
 구조 변경과 기능 변경을 같은 커밋에 섞지 않고 다음 순서로 진행합니다.
+
+현재 1번부터 5번까지 완료했으며 다음 대상은 음악 추천·보관함 화면의 MVI 전환입니다.
 
 1. 현재 기능을 기준 상태로 확정
 2. `:core:common`, `:core:designsystem` 모듈 생성
