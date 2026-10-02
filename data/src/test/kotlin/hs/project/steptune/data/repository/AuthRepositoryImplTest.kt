@@ -183,6 +183,24 @@ class AuthRepositoryImplTest {
         assertEquals(AuthSession(), runBlocking { dataSource.currentSession() })
     }
 
+    @Test
+    fun `failed account deletion keeps local records and authentication`() = runBlocking {
+        val dataSource = createDataSource()
+        val original = AuthSession("access", "refresh", "1", "name")
+        dataSource.saveSession(original)
+        val api = FakeAuthAPI().apply {
+            deleteAccountResponse = Response.error(503, "{}".toResponseBody("application/json".toMediaType()))
+        }
+        val localData = FakeLocalUserDataRepository()
+
+        assertThrows(java.io.IOException::class.java) {
+            runBlocking { AuthRepositoryImpl(api, dataSource, localData).deleteAccount() }
+        }
+
+        assertEquals(original, dataSource.currentSession())
+        assertEquals(0, localData.clearAllCallCount)
+    }
+
     private fun createDataSource(): AuthPreferencesDataSource {
         val dataStore = PreferenceDataStoreFactory.create(
             scope = dataStoreScope,
