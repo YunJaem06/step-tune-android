@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="app_name">StepTune</string>
     <string name="common_retry">다시 시도</string>
     <string name="steps_format">%1$,d보</string>
 </resources>

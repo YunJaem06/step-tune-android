@@ -1,0 +1,28 @@
+<resources>
+    <string name="login_title">걸음마다,\n당신다운 음악으로</string>
+    <string name="login_description">오늘의 활동과 기분을 바탕으로 산책에 어울리는 음악을 추천해드려요.</string>
+    <string name="login_feature_summary">걸음 기록 · 기분 분석 · 맞춤 플레이리스트를 한곳에서 만나보세요.</string>
+    <string name="login_continue_with_google">Google로 계속하기</string>
+    <string name="login_google_no_credential">기기에 사용할 수 있는 Google 계정이 없습니다.</string>
+    <string name="login_google_credential_error">Google 로그인 정보를 가져오지 못했습니다. 다시 시도해 주세요.</string>
+    <string name="login_google_server_error">서버 로그인에 실패했습니다. 서버 실행 상태와 네트워크를 확인해 주세요.</string>
+    <string name="login_terms_notice">계속하면 StepTune의 이용약관 및 개인정보 처리방침에 동의하는 것으로 간주됩니다.</string>
+    <string name="splash_checking_login">로그인 상태를 확인하는 중…</string>
+    <string name="splash_auto_login_failed">자동 로그인에 실패했습니다. 서버 실행 상태를 확인한 뒤 다시 시도해 주세요.</string>
+    <string name="onboarding_welcome_title">StepTune 시작하기</string>
+    <string name="onboarding_permission_description">걸음 수를 안정적으로 측정하려면 아래 권한이 필요해요.</string>
+    <string name="onboarding_activity_permission">신체 활동 권한</string>
+    <string name="onboarding_notification_permission">알림 권한</string>
+    <string name="onboarding_permission_granted">허용됨</string>
+    <string name="onboarding_permission_required">앱을 사용하기 전에 허용해 주세요.</string>
+    <string name="onboarding_grant_permission">권한 허용</string>
+    <string name="onboarding_allow_notifications">알림 허용</string>
+    <string name="onboarding_continue">계속</string>
+    <string name="onboarding_music_title">좋아하는 음악을 알려주세요</string>
+    <string name="onboarding_music_description">산책 음악 추천에 반영할 장르와 분위기를 선택해 주세요. 나중에 설정에서 바꿀 수 있어요.</string>
+    <string name="onboarding_previous">이전</string>
+    <string name="onboarding_complete">선택 완료</string>
+    <string name="onboarding_skip">건너뛰기</string>
+    <string name="onboarding_saving">저장 중…</string>
+    <string name="onboarding_save_failed">저장하지 못했어요. 잠시 후 다시 시도해 주세요.</string>
+</resources>

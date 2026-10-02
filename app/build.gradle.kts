@@ -80,6 +80,11 @@ dependencies {
     implementation(project(":data"))
     implementation(project(":core:ui"))
     implementation(project(":feature:music"))
+    implementation(project(":core:platform"))
+    implementation(project(":feature:auth"))
+    implementation(project(":feature:home"))
+    implementation(project(":feature:stats"))
+    implementation(project(":feature:settings"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.hilt.navigation.compose)
@@ -94,9 +99,6 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.hilt.android)
     implementation(libs.glide)
-    implementation(libs.androidx.credentials)
-    implementation(libs.androidx.credentials.play.services.auth)
-    implementation(libs.google.id)
 
     ksp(libs.hilt.compiler)
 

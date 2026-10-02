@@ -1,0 +1,22 @@
+<resources>
+    <string name="progress_title">오늘 걸음</string>
+    <string name="home_greeting">안녕하세요</string>
+    <string name="home_greeting_description">오늘도 좋아하는 음악과 가볍게 걸어볼까요?</string>
+    <string name="progress_steps_today">오늘 걸음</string>
+    <string name="progress_percent_format">%1$d%% 달성</string>
+    <string name="home_music_recommendation_title">지금 기분에 맞는 음악</string>
+    <string name="home_music_recommendation_description">오늘 활동과 음악 취향에 맞는 산책 음악 한 곡을 추천해드릴게요.</string>
+    <string name="home_music_recommendation_action">추천받기</string>
+    <string name="home_weekly_activity_title">이번 주 활동</string>
+    <string name="home_weekly_activity_empty">걸음을 기록하면 이번 주 활동 흐름이 여기에 표시돼요.</string>
+    <string name="progress_goal_label">목표</string>
+    <string name="progress_remaining_label">남은 걸음</string>
+    <string name="progress_distance_label">이동 거리</string>
+    <string name="progress_calories_label">소모 칼로리</string>
+    <string name="progress_summary_section">오늘 상태</string>
+    <string name="progress_summary_early">첫 걸음을 잘 시작했어요. 조금만 더 걸으면 금방 페이스가 붙어요.</string>
+    <string name="progress_summary_mid">좋아요. 오늘 목표의 절반 이상 왔고, 이 흐름이면 충분히 달성 가능해요.</string>
+    <string name="progress_summary_done">목표 달성까지 거의 다 왔어요. 오늘 컨디션이 좋네요.</string>
+    <string name="progress_summary_complete">오늘 목표를 달성했어요. 정말 잘하고 있어요.</string>
+    <string name="progress_loading">걸음 정보를 불러오는 중...</string>
+</resources>

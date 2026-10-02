@@ -24,6 +24,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.hilt.navigation.compose.hiltViewModel
 import hs.project.steptune.core.auth.AuthSessionEvent
+import hs.project.steptune.Config
 import hs.project.steptune.feature.home.HomeRoute
 import hs.project.steptune.feature.login.LoginRoute
 import hs.project.steptune.feature.musiclibrary.MusicLibraryRoute
@@ -134,6 +135,7 @@ fun StepTuneAppRoot() {
             }
             composable(AppDestination.Login.route) {
                 LoginRoute(
+                    googleWebClientId = Config.GOOGLE_WEB_CLIENT_ID,
                     onLoginSucceeded = {
                         navController.navigate(AppDestination.PostLogin.route) {
                             popUpTo(AppDestination.Login.route) { inclusive = true }
@@ -143,6 +145,7 @@ fun StepTuneAppRoot() {
             }
             composable(AppDestination.PostLogin.route) {
                 PostLoginRoute(
+                    onStartTracking = { StepTrackingServiceController.start(context) },
                     onNavigateToOnboarding = {
                         navController.navigate(AppDestination.Onboarding.route) {
                             popUpTo(AppDestination.PostLogin.route) { inclusive = true }
@@ -157,6 +160,7 @@ fun StepTuneAppRoot() {
             }
             composable(AppDestination.Onboarding.route) {
                 OnboardingRoute(
+                    onStartTracking = { StepTrackingServiceController.start(context) },
                     onFinished = {
                         navController.navigate(homeRoute) {
                             popUpTo(AppDestination.Onboarding.route) { inclusive = true }
@@ -186,6 +190,8 @@ fun StepTuneAppRoot() {
             }
             composable(TopLevelDestination.Settings.route) {
                 SettingsRoute(
+                    onStartTracking = { StepTrackingServiceController.start(context) },
+                    onStopTracking = { StepTrackingServiceController.stop(context) },
                     onLoggedOut = {
                         navController.navigate(AppDestination.Login.route) {
                             popUpTo(homeRoute) { inclusive = true }
