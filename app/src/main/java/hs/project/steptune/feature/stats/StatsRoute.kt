@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import hs.project.steptune.R
+import hs.project.steptune.core.designsystem.R as DesignSystemR
 import hs.project.steptune.domain.model.StatsOverview
 import hs.project.steptune.domain.model.StatsPeriod
 import hs.project.steptune.domain.model.StatsRecord
@@ -210,7 +211,7 @@ private fun WeeklyComparisonCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     OutlinedButton(onClick = onRetry) {
-                        Text(stringResource(R.string.common_retry))
+                        Text(stringResource(DesignSystemR.string.common_retry))
                     }
                 }
 

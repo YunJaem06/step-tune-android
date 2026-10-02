@@ -45,6 +45,7 @@ import androidx.credentials.exceptions.NoCredentialException
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import hs.project.steptune.R
+import hs.project.steptune.core.designsystem.R as DesignSystemR
 import hs.project.steptune.ui.theme.StepTuneTheme
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
@@ -170,7 +171,7 @@ private fun LoginHero() {
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.ic_music_note),
+                    painter = painterResource(DesignSystemR.drawable.ic_music_note),
                     contentDescription = null,
                     modifier = Modifier.size(24.dp),
                     tint = MaterialTheme.colorScheme.onPrimary

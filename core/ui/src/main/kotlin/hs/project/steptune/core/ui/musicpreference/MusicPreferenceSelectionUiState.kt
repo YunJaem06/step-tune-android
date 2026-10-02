@@ -1,4 +1,4 @@
-package hs.project.steptune.feature.musicpreference
+package hs.project.steptune.core.ui.musicpreference
 
 import androidx.compose.runtime.Immutable
 import hs.project.steptune.domain.model.MusicGenre

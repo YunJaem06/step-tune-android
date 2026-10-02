@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import hs.project.steptune.R
+import hs.project.steptune.core.designsystem.R as DesignSystemR
 
 @Composable
 fun SplashRoute(
@@ -51,7 +52,7 @@ fun SplashRoute(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Button(onClick = viewModel::retry) {
-                Text(stringResource(R.string.common_retry))
+                Text(stringResource(DesignSystemR.string.common_retry))
             }
         } else {
             CircularProgressIndicator()

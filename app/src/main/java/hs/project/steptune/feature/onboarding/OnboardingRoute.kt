@@ -31,7 +31,7 @@ import hs.project.steptune.R
 import hs.project.steptune.core.util.PermissionUtils
 import hs.project.steptune.domain.model.MusicGenre
 import hs.project.steptune.domain.model.MusicMood
-import hs.project.steptune.feature.musicpreference.MusicPreferenceSelector
+import hs.project.steptune.core.ui.musicpreference.MusicPreferenceSelector
 import hs.project.steptune.service.StepTrackingServiceController
 import hs.project.steptune.ui.theme.StepTuneTheme
 

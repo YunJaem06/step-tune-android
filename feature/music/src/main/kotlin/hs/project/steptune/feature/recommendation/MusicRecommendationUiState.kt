@@ -2,7 +2,7 @@ package hs.project.steptune.feature.recommendation
 
 import androidx.compose.runtime.Immutable
 import hs.project.steptune.domain.model.MusicRecommendation
-import hs.project.steptune.feature.musicpreference.MusicPreferenceSelectionUiState
+import hs.project.steptune.core.ui.musicpreference.MusicPreferenceSelectionUiState
 
 enum class MusicRecommendationError {
     TODAY_RECORD_NOT_FOUND,

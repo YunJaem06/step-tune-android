@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="music_preferences_genre_title">선호 장르</string>
+    <string name="music_preferences_mood_title">선호 분위기</string>
+    <string name="music_preferences_selection_count">%1$d/%2$d 선택</string>
+    <string name="music_genre_ballad">발라드</string>
+    <string name="music_genre_hip_hop">힙합</string>
+    <string name="music_genre_rnb">R&amp;B</string>
+    <string name="music_genre_pop">팝</string>
+    <string name="music_genre_rock">록</string>
+    <string name="music_genre_indie">인디</string>
+    <string name="music_genre_jazz">재즈</string>
+    <string name="music_genre_classical">클래식</string>
+    <string name="music_mood_calm">잔잔한</string>
+    <string name="music_mood_energetic">신나는</string>
+    <string name="music_mood_emotional">감성적인</string>
+    <string name="music_mood_focused">집중되는</string>
+    <string name="music_mood_lively">활기찬</string>
+</resources>

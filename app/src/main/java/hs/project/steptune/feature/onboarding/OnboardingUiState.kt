@@ -1,7 +1,7 @@
 package hs.project.steptune.feature.onboarding
 
 import androidx.compose.runtime.Immutable
-import hs.project.steptune.feature.musicpreference.MusicPreferenceSelectionUiState
+import hs.project.steptune.core.ui.musicpreference.MusicPreferenceSelectionUiState
 
 enum class OnboardingStep {
     PERMISSIONS,

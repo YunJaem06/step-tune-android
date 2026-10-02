@@ -18,7 +18,7 @@ import hs.project.steptune.domain.usecase.UpdateMusicPreferencesUseCase
 import hs.project.steptune.domain.usecase.UpdateProfileSettingsUseCase
 import hs.project.steptune.domain.usecase.UpdateNicknameUseCase
 import hs.project.steptune.domain.usecase.SyncCurrentUserUseCase
-import hs.project.steptune.feature.musicpreference.MusicPreferenceSelectionUiState
+import hs.project.steptune.core.ui.musicpreference.MusicPreferenceSelectionUiState
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow

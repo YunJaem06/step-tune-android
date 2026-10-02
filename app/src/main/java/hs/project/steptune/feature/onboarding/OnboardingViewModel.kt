@@ -8,7 +8,7 @@ import hs.project.steptune.domain.model.MusicMood
 import hs.project.steptune.domain.model.MusicPreferenceRules
 import hs.project.steptune.domain.usecase.CompleteOnboardingUseCase
 import hs.project.steptune.domain.usecase.ObserveUserPreferencesUseCase
-import hs.project.steptune.feature.musicpreference.MusicPreferenceSelectionUiState
+import hs.project.steptune.core.ui.musicpreference.MusicPreferenceSelectionUiState
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

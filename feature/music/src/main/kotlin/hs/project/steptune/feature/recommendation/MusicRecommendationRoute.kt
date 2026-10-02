@@ -37,12 +37,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import hs.project.steptune.R
+import hs.project.steptune.feature.music.R
+import hs.project.steptune.core.designsystem.R as DesignSystemR
 import hs.project.steptune.domain.model.MusicGenre
 import hs.project.steptune.domain.model.MusicMood
 import hs.project.steptune.domain.model.MusicRecommendation
 import hs.project.steptune.domain.model.RecommendationActivityLevel
-import hs.project.steptune.feature.musicpreference.MusicPreferenceSelector
+import hs.project.steptune.core.ui.musicpreference.MusicPreferenceSelector
 
 @Composable
 fun MusicRecommendationRoute(
@@ -122,7 +123,7 @@ private fun RecommendationTopBar(onBack: () -> Unit) {
     ) {
         IconButton(onClick = onBack) {
             Icon(
-                painter = painterResource(R.drawable.ic_arrow_back),
+                painter = painterResource(DesignSystemR.drawable.ic_arrow_back),
                 contentDescription = stringResource(R.string.recommendation_back)
             )
         }
@@ -221,7 +222,7 @@ private fun RecommendationForm(
             )
         } else {
             Icon(
-                painter = painterResource(R.drawable.ic_music_note),
+                painter = painterResource(DesignSystemR.drawable.ic_music_note),
                 contentDescription = null,
                 modifier = Modifier.size(20.dp)
             )
@@ -266,7 +267,7 @@ private fun RecommendationResult(
         color = MaterialTheme.colorScheme.primaryContainer
     ) {
         Icon(
-            painter = painterResource(R.drawable.ic_music_note),
+            painter = painterResource(DesignSystemR.drawable.ic_music_note),
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(14.dp).size(28.dp)
@@ -301,7 +302,7 @@ private fun RecommendationResult(
                 color = MaterialTheme.colorScheme.primary
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.ic_music_note),
+                    painter = painterResource(DesignSystemR.drawable.ic_music_note),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.padding(13.dp).size(24.dp)
@@ -371,14 +372,14 @@ private fun RecommendationResult(
             ResultInfoRow(
                 label = stringResource(R.string.recommendation_today_steps),
                 value = stringResource(
-                    R.string.steps_format,
+                    DesignSystemR.string.steps_format,
                     recommendation.stepSummary.todayStepCount
                 )
             )
             ResultInfoRow(
                 label = stringResource(R.string.recommendation_recent_average),
                 value = stringResource(
-                    R.string.steps_format,
+                    DesignSystemR.string.steps_format,
                     recommendation.stepSummary.recent7DayAverage.toInt()
                 )
             )
@@ -398,7 +399,7 @@ private fun RecommendationResult(
         shape = RoundedCornerShape(16.dp)
     ) {
         Icon(
-            painter = painterResource(R.drawable.ic_music_note),
+            painter = painterResource(DesignSystemR.drawable.ic_music_note),
             contentDescription = null,
             modifier = Modifier.size(20.dp)
         )
@@ -428,9 +429,9 @@ private fun RecommendationResult(
             Icon(
                 painter = painterResource(
                     if (recommendation.favorite) {
-                        R.drawable.ic_favorite
+                        DesignSystemR.drawable.ic_favorite
                     } else {
-                        R.drawable.ic_favorite_border
+                        DesignSystemR.drawable.ic_favorite_border
                     }
                 ),
                 contentDescription = null,

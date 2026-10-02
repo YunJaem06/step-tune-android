@@ -1,4 +1,4 @@
-package hs.project.steptune.feature.musicpreference
+package hs.project.steptune.core.ui.musicpreference
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -12,7 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import hs.project.steptune.R
+import hs.project.steptune.core.ui.R
 import hs.project.steptune.domain.model.MusicGenre
 import hs.project.steptune.domain.model.MusicMood
 import hs.project.steptune.domain.model.MusicPreferenceRules

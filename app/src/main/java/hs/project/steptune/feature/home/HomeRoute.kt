@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import hs.project.steptune.R
+import hs.project.steptune.core.designsystem.R as DesignSystemR
 import hs.project.steptune.domain.model.StatsRecord
 import hs.project.steptune.ui.theme.StepCoral
 import hs.project.steptune.ui.theme.StepMint
@@ -228,7 +229,7 @@ private fun StepProgressCard(uiState: HomeUiState) {
             ) {
                 HomeCaption(
                     label = stringResource(R.string.progress_goal_label),
-                    value = stringResource(R.string.steps_format, uiState.goal)
+                    value = stringResource(DesignSystemR.string.steps_format, uiState.goal)
                 )
                 Box(
                     modifier = Modifier
@@ -237,7 +238,7 @@ private fun StepProgressCard(uiState: HomeUiState) {
                 )
                 HomeCaption(
                     label = stringResource(R.string.progress_remaining_label),
-                    value = stringResource(R.string.steps_format, uiState.remainingSteps)
+                    value = stringResource(DesignSystemR.string.steps_format, uiState.remainingSteps)
                 )
             }
         }
@@ -317,7 +318,7 @@ private fun MusicRecommendationCard(onClick: () -> Unit) {
                 color = MaterialTheme.colorScheme.primary
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.ic_music_note),
+                    painter = painterResource(DesignSystemR.drawable.ic_music_note),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.padding(13.dp).size(24.dp)

@@ -78,6 +78,8 @@ dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":domain"))
     implementation(project(":data"))
+    implementation(project(":core:ui"))
+    implementation(project(":feature:music"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.hilt.navigation.compose)

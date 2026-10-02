@@ -39,7 +39,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import hs.project.steptune.R
+import hs.project.steptune.feature.music.R
+import hs.project.steptune.core.designsystem.R as DesignSystemR
 import hs.project.steptune.domain.model.MusicRecommendation
 
 @Composable
@@ -257,7 +258,7 @@ private fun MusicRecommendationHistoryCard(
                     color = MaterialTheme.colorScheme.primaryContainer
                 ) {
                     Icon(
-                        painter = painterResource(R.drawable.ic_music_note),
+                        painter = painterResource(DesignSystemR.drawable.ic_music_note),
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(11.dp).size(22.dp)
@@ -296,9 +297,9 @@ private fun MusicRecommendationHistoryCard(
                         Icon(
                             painter = painterResource(
                                 if (recommendation.favorite) {
-                                    R.drawable.ic_favorite
+                                    DesignSystemR.drawable.ic_favorite
                                 } else {
-                                    R.drawable.ic_favorite_border
+                                    DesignSystemR.drawable.ic_favorite_border
                                 }
                             ),
                             contentDescription = stringResource(
@@ -321,7 +322,7 @@ private fun MusicRecommendationHistoryCard(
                     enabled = !isDeleting && !isUpdatingFavorite
                 ) {
                     Icon(
-                        painter = painterResource(R.drawable.ic_delete),
+                        painter = painterResource(DesignSystemR.drawable.ic_delete),
                         contentDescription = stringResource(R.string.music_library_delete),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -351,7 +352,7 @@ private fun MusicRecommendationHistoryCard(
                 )
                 RecommendationMetadata(
                     text = stringResource(
-                        R.string.steps_format,
+                        DesignSystemR.string.steps_format,
                         recommendation.stepSummary.todayStepCount
                     ),
                     modifier = Modifier.weight(1f)
@@ -364,7 +365,7 @@ private fun MusicRecommendationHistoryCard(
                 shape = RoundedCornerShape(14.dp)
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.ic_play),
+                    painter = painterResource(DesignSystemR.drawable.ic_play),
                     contentDescription = null,
                     modifier = Modifier.size(19.dp)
                 )
@@ -412,7 +413,7 @@ private fun EmptyMusicLibrary(
         ) {
             Icon(
                 painter = painterResource(
-                    if (favoriteOnly) R.drawable.ic_favorite_border else R.drawable.ic_music_note
+                    if (favoriteOnly) DesignSystemR.drawable.ic_favorite_border else DesignSystemR.drawable.ic_music_note
                 ),
                 contentDescription = null,
                 modifier = Modifier.size(38.dp),
@@ -477,7 +478,7 @@ private fun MusicLibraryErrorCard(
                 color = MaterialTheme.colorScheme.onErrorContainer
             )
             TextButton(onClick = onRetry) {
-                Text(stringResource(R.string.common_retry))
+                Text(stringResource(DesignSystemR.string.common_retry))
             }
         }
     }

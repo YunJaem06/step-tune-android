@@ -14,7 +14,7 @@ import hs.project.steptune.domain.model.MusicPreferenceRules
 import hs.project.steptune.domain.usecase.GenerateMusicRecommendationUseCase
 import hs.project.steptune.domain.usecase.ObserveUserPreferencesUseCase
 import hs.project.steptune.domain.usecase.UpdateMusicRecommendationFavoriteUseCase
-import hs.project.steptune.feature.musicpreference.MusicPreferenceSelectionUiState
+import hs.project.steptune.core.ui.musicpreference.MusicPreferenceSelectionUiState
 import java.io.IOException
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
