@@ -72,4 +72,3 @@ object DateFormatter {
         return (nextDay.timeInMillis - now.timeInMillis).coerceAtLeast(MINIMUM_DELAY_MILLIS)
     }
 }
-
