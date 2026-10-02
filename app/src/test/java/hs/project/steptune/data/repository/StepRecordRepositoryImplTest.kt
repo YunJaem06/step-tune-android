@@ -8,10 +8,13 @@ import hs.project.steptune.data.step.response.ResponseDailyStepRecordHistory
 import hs.project.steptune.data.step.response.ResponseDailyStepRecordLookup
 import hs.project.steptune.data.step.response.ResponseDailyStepRecordSync
 import hs.project.steptune.data.step.response.ResponseWeeklyStepStatistics
+import hs.project.steptune.domain.error.ResourceNotFoundException
 import hs.project.steptune.domain.model.DailyStepRecordWrite
 import java.math.BigDecimal
 import kotlinx.coroutines.runBlocking
+import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
 import org.junit.Test
 import retrofit2.Response
 
@@ -108,6 +111,20 @@ class StepRecordRepositoryImplTest {
         assertEquals(5_000, statistics.todayStepCount)
         assertEquals(3_000.0, statistics.recent7DayAverage, 0.0)
         assertEquals(66.67, statistics.changeRatePercent ?: 0.0, 0.0)
+    }
+
+    @Test
+    fun `404 weekly statistics response is translated to domain resource not found error`() {
+        val api = FakeStepAPI().apply {
+            weeklyStatisticsResponse = Response.error(404, "".toResponseBody())
+        }
+        val repository = StepRecordRepositoryImpl(api)
+
+        assertThrows(ResourceNotFoundException::class.java) {
+            runBlocking {
+                repository.getWeeklyStatistics("2026-09-03")
+            }
+        }
     }
 
     private fun responseRecord(stepCount: Int) = ResponseDailyStepRecord(

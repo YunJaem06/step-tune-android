@@ -1,7 +1,7 @@
 package hs.project.steptune.domain.usecase
 
-import hs.project.steptune.api.NotFoundException
 import hs.project.steptune.core.util.DateFormatter
+import hs.project.steptune.domain.error.ResourceNotFoundException
 import hs.project.steptune.domain.model.DailyProgress
 import hs.project.steptune.domain.model.WeeklyStepStatistics
 import hs.project.steptune.domain.repository.PedometerRepository
@@ -24,7 +24,7 @@ class GetWeeklyStepStatisticsUseCase @Inject constructor(
 
         return try {
             stepRecordRepository.getWeeklyStatistics(recordDate)
-        } catch (_: NotFoundException) {
+        } catch (_: ResourceNotFoundException) {
             syncDailyStepRecordsUseCase(listOf(todayProgress))
             stepRecordRepository.getWeeklyStatistics(recordDate)
         }

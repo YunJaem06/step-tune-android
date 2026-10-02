@@ -2,7 +2,6 @@ package hs.project.steptune.data.repository
 
 import hs.project.steptune.api.InvalidRecommendationResponseException
 import hs.project.steptune.api.MusicRecommendationAPI
-import hs.project.steptune.api.NotFoundException
 import hs.project.steptune.api.RecommendationUnavailableException
 import hs.project.steptune.api.ServerException
 import hs.project.steptune.api.TooManyRequestsException
@@ -12,6 +11,7 @@ import hs.project.steptune.data.recommendation.request.RequestGenerateMusicRecom
 import hs.project.steptune.data.recommendation.request.RequestUpdateMusicRecommendationFavorite
 import hs.project.steptune.data.recommendation.response.ResponseMusicRecommendation
 import hs.project.steptune.data.recommendation.response.ResponseMusicRecommendationHistory
+import hs.project.steptune.domain.error.ResourceNotFoundException
 import hs.project.steptune.domain.model.MusicGenre
 import hs.project.steptune.domain.model.MusicMood
 import hs.project.steptune.domain.model.MusicRecommendation
@@ -132,7 +132,7 @@ class MusicRecommendationRepositoryImpl @Inject constructor(
     ) {
         when (code()) {
             HTTP_UNAUTHORIZED -> throw UnauthorizedException()
-            HTTP_NOT_FOUND -> throw NotFoundException(notFoundMessage)
+            HTTP_NOT_FOUND -> throw ResourceNotFoundException(notFoundMessage)
             HTTP_TOO_MANY_REQUESTS -> throw TooManyRequestsException()
             HTTP_BAD_GATEWAY -> throw InvalidRecommendationResponseException()
             HTTP_SERVICE_UNAVAILABLE -> throw RecommendationUnavailableException()

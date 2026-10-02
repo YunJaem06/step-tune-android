@@ -4,10 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import hs.project.steptune.api.InvalidRecommendationResponseException
-import hs.project.steptune.api.NotFoundException
 import hs.project.steptune.api.RecommendationUnavailableException
 import hs.project.steptune.api.ServerException
 import hs.project.steptune.api.TooManyRequestsException
+import hs.project.steptune.domain.error.ResourceNotFoundException
 import hs.project.steptune.domain.model.MusicGenre
 import hs.project.steptune.domain.model.MusicMood
 import hs.project.steptune.domain.model.MusicPreferenceRules
@@ -161,7 +161,7 @@ class MusicRecommendationViewModel @Inject constructor(
     }
 
     private fun Exception.toUiError(): MusicRecommendationError = when (this) {
-        is NotFoundException -> MusicRecommendationError.TODAY_RECORD_NOT_FOUND
+        is ResourceNotFoundException -> MusicRecommendationError.TODAY_RECORD_NOT_FOUND
         is TooManyRequestsException -> MusicRecommendationError.RATE_LIMIT
         is RecommendationUnavailableException -> MusicRecommendationError.SERVICE_UNAVAILABLE
         is InvalidRecommendationResponseException -> MusicRecommendationError.INVALID_RESPONSE

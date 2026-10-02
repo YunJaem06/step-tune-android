@@ -1,4 +1,4 @@
-package hs.project.steptune.core.util
+package hs.project.steptune.domain.util
 
 import hs.project.steptune.domain.model.DailyProgress
 import hs.project.steptune.domain.model.StatsOverview

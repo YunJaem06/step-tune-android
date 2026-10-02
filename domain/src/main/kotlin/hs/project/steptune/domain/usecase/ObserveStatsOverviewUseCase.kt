@@ -1,9 +1,9 @@
 package hs.project.steptune.domain.usecase
 
-import hs.project.steptune.core.util.StatsDateUtils
 import hs.project.steptune.domain.model.StatsOverview
 import hs.project.steptune.domain.model.StatsPeriod
 import hs.project.steptune.domain.repository.PedometerRepository
+import hs.project.steptune.domain.util.StatsDateUtils
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map

@@ -14,10 +14,6 @@ class ConflictException(
     message: String = "요청한 값이 현재 서버 상태와 충돌합니다."
 ) : ServerException(message)
 
-class NotFoundException(
-    message: String = "요청한 데이터를 찾을 수 없습니다."
-) : ServerException(message)
-
 class TooManyRequestsException(
     message: String = "추천 요청이 많습니다. 잠시 후 다시 시도해 주세요."
 ) : ServerException(message)

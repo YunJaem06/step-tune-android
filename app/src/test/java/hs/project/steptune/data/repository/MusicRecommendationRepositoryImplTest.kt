@@ -9,6 +9,7 @@ import hs.project.steptune.data.recommendation.response.ResponseMusicRecommendat
 import hs.project.steptune.data.recommendation.response.ResponseMusicRecommendationHistory
 import hs.project.steptune.data.recommendation.response.ResponseRecommendedTrack
 import hs.project.steptune.data.recommendation.response.ResponseRecommendationStepSummary
+import hs.project.steptune.domain.error.ResourceNotFoundException
 import hs.project.steptune.domain.model.MusicGenre
 import hs.project.steptune.domain.model.MusicMood
 import java.math.BigDecimal
@@ -104,6 +105,25 @@ class MusicRecommendationRepositoryImplTest {
         val repository = MusicRecommendationRepositoryImpl(api)
 
         assertThrows(RecommendationUnavailableException::class.java) {
+            runBlocking {
+                repository.generate(
+                    recordDate = "2026-09-08",
+                    preferredMoods = emptySet(),
+                    preferredGenres = emptySet(),
+                    durationMinutes = 30
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `404 response is translated to domain resource not found error`() {
+        val api = FakeMusicRecommendationAPI().apply {
+            generateResponse = Response.error(404, "".toResponseBody())
+        }
+        val repository = MusicRecommendationRepositoryImpl(api)
+
+        assertThrows(ResourceNotFoundException::class.java) {
             runBlocking {
                 repository.generate(
                     recordDate = "2026-09-08",

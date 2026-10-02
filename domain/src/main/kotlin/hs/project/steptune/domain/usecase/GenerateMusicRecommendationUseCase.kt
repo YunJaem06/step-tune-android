@@ -1,7 +1,7 @@
 package hs.project.steptune.domain.usecase
 
-import hs.project.steptune.api.NotFoundException
 import hs.project.steptune.core.util.DateFormatter
+import hs.project.steptune.domain.error.ResourceNotFoundException
 import hs.project.steptune.domain.model.DailyProgress
 import hs.project.steptune.domain.model.MusicGenre
 import hs.project.steptune.domain.model.MusicMood
@@ -33,7 +33,7 @@ class GenerateMusicRecommendationUseCase @Inject constructor(
         syncDailyStepRecordsUseCase(listOf(progress))
         return try {
             generate(recordDate, preferredMoods, preferredGenres, durationMinutes)
-        } catch (_: NotFoundException) {
+        } catch (_: ResourceNotFoundException) {
             syncDailyStepRecordsUseCase(listOf(progress))
             generate(recordDate, preferredMoods, preferredGenres, durationMinutes)
         }

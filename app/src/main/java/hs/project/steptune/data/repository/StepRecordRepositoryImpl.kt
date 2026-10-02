@@ -3,11 +3,11 @@ package hs.project.steptune.data.repository
 import hs.project.steptune.api.ServerException
 import hs.project.steptune.api.StepAPI
 import hs.project.steptune.api.UnauthorizedException
-import hs.project.steptune.api.NotFoundException
 import hs.project.steptune.data.ServerResponse
 import hs.project.steptune.data.step.request.RequestDailyStepRecord
 import hs.project.steptune.data.step.request.RequestSyncDailyStepRecords
 import hs.project.steptune.data.step.response.ResponseDailyStepRecord
+import hs.project.steptune.domain.error.ResourceNotFoundException
 import hs.project.steptune.domain.model.DailyStepRecord
 import hs.project.steptune.domain.model.DailyStepRecordSyncResult
 import hs.project.steptune.domain.model.DailyStepRecordWrite
@@ -78,7 +78,7 @@ class StepRecordRepositoryImpl @Inject constructor(
             throw UnauthorizedException()
         }
         if (code() == HTTP_NOT_FOUND) {
-            throw NotFoundException(body()?.message ?: "걸음 기록을 찾을 수 없습니다.")
+            throw ResourceNotFoundException(body()?.message ?: "걸음 기록을 찾을 수 없습니다.")
         }
 
         val responseBody = body()

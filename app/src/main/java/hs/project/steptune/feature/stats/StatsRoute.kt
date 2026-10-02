@@ -252,22 +252,23 @@ private fun WeeklyComparisonContent(statistics: WeeklyStepStatistics) {
         )
     }
 
+    val changeRatePercent = statistics.changeRatePercent
     val comparisonText = when {
-        statistics.changeRatePercent == null ->
+        changeRatePercent == null ->
             stringResource(R.string.stats_weekly_comparison_not_enough)
 
         statistics.differenceFromAverage > 0 ->
             stringResource(
                 R.string.stats_weekly_comparison_above,
                 abs(statistics.differenceFromAverage).roundToInt(),
-                abs(statistics.changeRatePercent)
+                abs(changeRatePercent)
             )
 
         statistics.differenceFromAverage < 0 ->
             stringResource(
                 R.string.stats_weekly_comparison_below,
                 abs(statistics.differenceFromAverage).roundToInt(),
-                abs(statistics.changeRatePercent)
+                abs(changeRatePercent)
             )
 
         else -> stringResource(R.string.stats_weekly_comparison_same)

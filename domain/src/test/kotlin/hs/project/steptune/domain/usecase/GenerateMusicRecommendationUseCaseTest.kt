@@ -1,6 +1,6 @@
 package hs.project.steptune.domain.usecase
 
-import hs.project.steptune.api.NotFoundException
+import hs.project.steptune.domain.error.ResourceNotFoundException
 import hs.project.steptune.domain.model.DailyProgress
 import hs.project.steptune.domain.model.DailyStepRecord
 import hs.project.steptune.domain.model.DailyStepRecordSyncResult
@@ -172,7 +172,7 @@ private class RecommendationFakeRepository(
         generateCallCount++
         if (notFoundResponses > 0) {
             notFoundResponses--
-            throw NotFoundException()
+            throw ResourceNotFoundException()
         }
         return MusicRecommendation(
             recommendationId = "recommendation-id",
