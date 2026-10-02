@@ -181,9 +181,10 @@ class StepTrackingService : Service(), SensorEventListener {
     private suspend fun persistStepReading(rawSensorSteps: Int) {
         val today = DateFormatter.today()
         val previousState = currentTrackingState
+        val previousBaseline = previousState.baselineSensorSteps
         val needsExistingRecord = previousState.trackingDate != today ||
-            previousState.baselineSensorSteps == null ||
-            rawSensorSteps < previousState.baselineSensorSteps
+            previousBaseline == null ||
+            rawSensorSteps < previousBaseline
         val existingTodaySteps = if (needsExistingRecord) {
             pedometerRepository.getDailyProgress(today)?.steps ?: 0
         } else {

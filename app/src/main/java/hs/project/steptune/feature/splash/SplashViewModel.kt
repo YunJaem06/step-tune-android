@@ -3,7 +3,7 @@ package hs.project.steptune.feature.splash
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import hs.project.steptune.api.UnauthorizedException
+import hs.project.steptune.domain.error.UnauthorizedException
 import hs.project.steptune.domain.usecase.GetCurrentAuthSessionUseCase
 import hs.project.steptune.domain.usecase.RefreshAuthSessionUseCase
 import javax.inject.Inject

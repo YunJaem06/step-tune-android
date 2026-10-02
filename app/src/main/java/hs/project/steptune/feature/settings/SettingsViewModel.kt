@@ -3,7 +3,7 @@ package hs.project.steptune.feature.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import hs.project.steptune.api.ConflictException
+import hs.project.steptune.domain.error.ConflictException
 import hs.project.steptune.domain.model.MusicGenre
 import hs.project.steptune.domain.model.MusicMood
 import hs.project.steptune.domain.model.MusicPreferenceRules

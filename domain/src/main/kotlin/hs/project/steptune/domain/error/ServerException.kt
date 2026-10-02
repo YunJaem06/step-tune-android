@@ -1,0 +1,27 @@
+package hs.project.steptune.domain.error
+
+import java.io.IOException
+
+open class ServerException(
+    message: String
+) : IOException(message)
+
+class UnauthorizedException(
+    message: String = "인증 정보가 만료되었습니다."
+) : ServerException(message)
+
+class ConflictException(
+    message: String = "요청한 값이 현재 서버 상태와 충돌합니다."
+) : ServerException(message)
+
+class TooManyRequestsException(
+    message: String = "추천 요청이 많습니다. 잠시 후 다시 시도해 주세요."
+) : ServerException(message)
+
+class RecommendationUnavailableException(
+    message: String = "AI 추천 서비스를 현재 사용할 수 없습니다."
+) : ServerException(message)
+
+class InvalidRecommendationResponseException(
+    message: String = "AI 추천 결과를 처리하지 못했습니다."
+) : ServerException(message)

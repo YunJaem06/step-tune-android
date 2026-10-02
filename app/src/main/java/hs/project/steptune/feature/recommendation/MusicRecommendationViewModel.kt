@@ -3,10 +3,10 @@ package hs.project.steptune.feature.recommendation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import hs.project.steptune.api.InvalidRecommendationResponseException
-import hs.project.steptune.api.RecommendationUnavailableException
-import hs.project.steptune.api.ServerException
-import hs.project.steptune.api.TooManyRequestsException
+import hs.project.steptune.domain.error.InvalidRecommendationResponseException
+import hs.project.steptune.domain.error.RecommendationUnavailableException
+import hs.project.steptune.domain.error.ServerException
+import hs.project.steptune.domain.error.TooManyRequestsException
 import hs.project.steptune.domain.error.ResourceNotFoundException
 import hs.project.steptune.domain.model.MusicGenre
 import hs.project.steptune.domain.model.MusicMood

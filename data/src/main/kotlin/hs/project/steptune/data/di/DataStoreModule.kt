@@ -1,0 +1,43 @@
+package hs.project.steptune.data.di
+
+import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.preferencesDataStoreFile
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
+import dagger.hilt.components.SingletonComponent
+import javax.inject.Singleton
+
+@Module
+@InstallIn(SingletonComponent::class)
+object DataStoreModule {
+
+    private const val SETTINGS_FILE_NAME = "pedometer_preferences.preferences_pb"
+    private const val AUTH_FILE_NAME = "auth_preferences.preferences_pb"
+
+    @Provides
+    @Singleton
+    fun providePreferencesDataStore(
+        @ApplicationContext context: Context
+    ): DataStore<Preferences> {
+        return PreferenceDataStoreFactory.create(
+            produceFile = { context.preferencesDataStoreFile(SETTINGS_FILE_NAME) }
+        )
+    }
+
+    @Provides
+    @Singleton
+    @AuthDataStore
+    fun provideAuthPreferencesDataStore(
+        @ApplicationContext context: Context
+    ): DataStore<Preferences> {
+        return PreferenceDataStoreFactory.create(
+            produceFile = { context.preferencesDataStoreFile(AUTH_FILE_NAME) }
+        )
+    }
+}
+
