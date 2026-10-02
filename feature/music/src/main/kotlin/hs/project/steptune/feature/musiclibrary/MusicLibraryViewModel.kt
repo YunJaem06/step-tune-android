@@ -7,13 +7,19 @@ import hs.project.steptune.domain.model.MusicRecommendation
 import hs.project.steptune.domain.usecase.DeleteMusicRecommendationUseCase
 import hs.project.steptune.domain.usecase.GetMusicRecommendationHistoryUseCase
 import hs.project.steptune.domain.usecase.UpdateMusicRecommendationFavoriteUseCase
+import hs.project.steptune.feature.musiclibrary.MusicLibraryContract.Action
+import hs.project.steptune.feature.musiclibrary.MusicLibraryContract.Effect
+import hs.project.steptune.feature.musiclibrary.MusicLibraryContract.State
 import java.io.IOException
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -23,42 +29,68 @@ class MusicLibraryViewModel @Inject constructor(
     private val updateFavoriteUseCase: UpdateMusicRecommendationFavoriteUseCase,
     private val deleteRecommendationUseCase: DeleteMusicRecommendationUseCase
 ) : ViewModel() {
-    private val _uiState = MutableStateFlow(MusicLibraryUiState())
-    val uiState: StateFlow<MusicLibraryUiState> = _uiState.asStateFlow()
+    private val _state = MutableStateFlow(State())
+    val state: StateFlow<State> = _state.asStateFlow()
+    private val effectChannel = Channel<Effect>(Channel.BUFFERED)
+    val effects: Flow<Effect> = effectChannel.receiveAsFlow()
     private var historyJob: Job? = null
+    private var historyRequestId = 0L
 
-    fun selectFilter(filter: MusicLibraryFilter) {
-        val current = _uiState.value
+    fun onAction(action: Action) {
+        when (action) {
+            Action.Refresh -> refresh()
+            is Action.SelectFilter -> selectFilter(action.filter)
+            Action.LoadMore -> loadMore()
+            is Action.ToggleFavorite -> toggleFavorite(action.recommendationId)
+            is Action.RequestDelete -> requestDelete(action.recommendationId)
+            Action.DismissDelete -> dismissDelete()
+            Action.ConfirmDelete -> confirmDelete()
+            is Action.OpenYouTube -> findRecommendation(action.recommendationId)?.let {
+                emitEffect(Effect.OpenYouTube(it.track.searchQuery))
+            }
+            Action.RequestRecommendation -> emitEffect(Effect.NavigateToRecommendation)
+        }
+    }
+
+    private fun emitEffect(effect: Effect) {
+        viewModelScope.launch { effectChannel.send(effect) }
+    }
+
+    private fun findRecommendation(id: String): MusicRecommendation? =
+        _state.value.recommendations.find { it.recommendationId == id }
+
+    private fun selectFilter(filter: MusicLibraryFilter) {
+        val current = _state.value
         if (
             current.filter == filter ||
-            current.pendingFavoriteId != null ||
-            current.pendingDeleteId != null
+            current.isMutating ||
+            current.deleteConfirmation != null
         ) {
             return
         }
-        historyJob?.cancel()
-        _uiState.update {
-            MusicLibraryUiState(filter = filter)
+        _state.update {
+            State(filter = filter)
         }
         loadHistory(reset = true)
     }
 
-    fun retry() {
-        historyJob?.cancel()
+    private fun refresh() {
+        if (_state.value.isMutating || _state.value.deleteConfirmation != null) return
         loadHistory(reset = true)
     }
 
-    fun loadMore() {
-        val current = _uiState.value
-        if (current.isLoading || current.isLoadingMore || !current.hasNext) return
+    private fun loadMore() {
+        val current = _state.value
+        if (!current.canModify || current.deleteConfirmation != null || !current.hasNext) return
         loadHistory(reset = false)
     }
 
-    fun toggleFavorite(recommendation: MusicRecommendation) {
-        val current = _uiState.value
-        if (current.pendingFavoriteId != null || current.pendingDeleteId != null) return
+    private fun toggleFavorite(recommendationId: String) {
+        val current = _state.value
+        if (!current.canModify || current.deleteConfirmation != null) return
+        val recommendation = findRecommendation(recommendationId) ?: return
         val favoriteOnly = current.favoriteOnly
-        _uiState.update {
+        _state.update {
             it.copy(pendingFavoriteId = recommendation.recommendationId, error = null)
         }
         viewModelScope.launch {
@@ -68,10 +100,10 @@ class MusicLibraryViewModel @Inject constructor(
                     favorite = !recommendation.favorite
                 )
                 if (favoriteOnly && !updated.favorite) {
-                    _uiState.update { it.copy(pendingFavoriteId = null, error = null) }
+                    _state.update { it.copy(pendingFavoriteId = null, error = null) }
                     loadHistory(reset = true)
                 } else {
-                    _uiState.update { state ->
+                    _state.update { state ->
                         state.copy(
                             recommendations = state.recommendations.map {
                                 if (it.recommendationId == updated.recommendationId) updated else it
@@ -84,33 +116,34 @@ class MusicLibraryViewModel @Inject constructor(
             } catch (exception: CancellationException) {
                 throw exception
             } catch (exception: Exception) {
-                _uiState.update {
+                _state.update {
                     it.copy(pendingFavoriteId = null, error = exception.toLibraryError())
                 }
             }
         }
     }
 
-    fun requestDelete(recommendation: MusicRecommendation) {
-        if (_uiState.value.pendingDeleteId != null) return
-        _uiState.update { it.copy(deleteConfirmation = recommendation) }
+    private fun requestDelete(recommendationId: String) {
+        if (!_state.value.canModify || _state.value.deleteConfirmation != null) return
+        val recommendation = findRecommendation(recommendationId) ?: return
+        _state.update { it.copy(deleteConfirmation = recommendation) }
     }
 
-    fun dismissDelete() {
-        if (_uiState.value.pendingDeleteId != null) return
-        _uiState.update { it.copy(deleteConfirmation = null) }
+    private fun dismissDelete() {
+        if (_state.value.pendingDeleteId != null) return
+        _state.update { it.copy(deleteConfirmation = null) }
     }
 
-    fun confirmDelete() {
-        val recommendation = _uiState.value.deleteConfirmation ?: return
-        if (_uiState.value.pendingDeleteId != null) return
-        _uiState.update {
+    private fun confirmDelete() {
+        val recommendation = _state.value.deleteConfirmation ?: return
+        if (!_state.value.canModify) return
+        _state.update {
             it.copy(pendingDeleteId = recommendation.recommendationId, error = null)
         }
         viewModelScope.launch {
             try {
                 deleteRecommendationUseCase(recommendation.recommendationId)
-                _uiState.update {
+                _state.update {
                     it.copy(
                         pendingDeleteId = null,
                         deleteConfirmation = null,
@@ -121,7 +154,7 @@ class MusicLibraryViewModel @Inject constructor(
             } catch (exception: CancellationException) {
                 throw exception
             } catch (exception: Exception) {
-                _uiState.update {
+                _state.update {
                     it.copy(pendingDeleteId = null, error = exception.toLibraryError())
                 }
             }
@@ -129,24 +162,25 @@ class MusicLibraryViewModel @Inject constructor(
     }
 
     private fun loadHistory(reset: Boolean) {
-        val current = _uiState.value
+        historyJob?.cancel()
+        val requestId = ++historyRequestId
+        val current = _state.value
         val requestedPage = if (reset) 0 else current.currentPage + 1
         val requestedFilter = current.filter
+        // Set loading before launching so consecutive Actions cannot request the same page twice.
+        _state.update {
+            it.copy(isLoading = reset, isLoadingMore = !reset, error = null)
+        }
         historyJob = viewModelScope.launch {
-            _uiState.update {
-                it.copy(
-                    isLoading = reset,
-                    isLoadingMore = !reset,
-                    error = null
-                )
-            }
             try {
                 val result = getHistoryUseCase(
                     page = requestedPage,
                     favoriteOnly = requestedFilter == MusicLibraryFilter.FAVORITES
                 )
-                _uiState.update { state ->
-                    if (state.filter != requestedFilter) return@update state
+                _state.update { state ->
+                    if (requestId != historyRequestId || state.filter != requestedFilter) {
+                        return@update state
+                    }
                     state.copy(
                         recommendations = if (reset) {
                             result.recommendations
@@ -165,8 +199,10 @@ class MusicLibraryViewModel @Inject constructor(
             } catch (exception: CancellationException) {
                 throw exception
             } catch (exception: Exception) {
-                _uiState.update { state ->
-                    if (state.filter != requestedFilter) return@update state
+                _state.update { state ->
+                    if (requestId != historyRequestId || state.filter != requestedFilter) {
+                        return@update state
+                    }
                     state.copy(
                         isLoading = false,
                         isLoadingMore = false,

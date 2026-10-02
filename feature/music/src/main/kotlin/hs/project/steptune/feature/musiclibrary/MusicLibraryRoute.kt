@@ -1,7 +1,5 @@
 package hs.project.steptune.feature.musiclibrary
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,6 +27,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -38,60 +37,61 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import hs.project.steptune.feature.music.R
 import hs.project.steptune.core.designsystem.R as DesignSystemR
 import hs.project.steptune.domain.model.MusicRecommendation
+import hs.project.steptune.feature.music.ui.openYouTubeSearch
+import hs.project.steptune.feature.musiclibrary.MusicLibraryContract.Action
+import hs.project.steptune.feature.musiclibrary.MusicLibraryContract.Effect
+import hs.project.steptune.feature.musiclibrary.MusicLibraryContract.State
 
 @Composable
 fun MusicLibraryRoute(
     onRecommendationClick: () -> Unit
 ) {
     val viewModel: MusicLibraryViewModel = hiltViewModel()
-    val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
+    val state = viewModel.state.collectAsStateWithLifecycle().value
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val currentOnRecommendationClick = rememberUpdatedState(onRecommendationClick)
 
-    LaunchedEffect(Unit) {
-        viewModel.retry()
+    LaunchedEffect(viewModel) {
+        viewModel.onAction(Action.Refresh)
+    }
+
+    LaunchedEffect(viewModel, lifecycleOwner, context) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            viewModel.effects.collect { effect ->
+                when (effect) {
+                    Effect.NavigateToRecommendation -> currentOnRecommendationClick.value()
+                    is Effect.OpenYouTube -> context.openYouTubeSearch(effect.searchQuery)
+                }
+            }
+        }
     }
 
     MusicLibraryScreen(
-        uiState = uiState,
-        onFilterSelected = viewModel::selectFilter,
-        onRetry = viewModel::retry,
-        onLoadMore = viewModel::loadMore,
-        onFavoriteToggle = viewModel::toggleFavorite,
-        onDeleteRequested = viewModel::requestDelete,
-        onDeleteDismissed = viewModel::dismissDelete,
-        onDeleteConfirmed = viewModel::confirmDelete,
-        onRecommendationClick = onRecommendationClick,
-        onOpenSearch = { query ->
-            val intent = Intent(Intent.ACTION_VIEW, query.toYoutubeSearchUri())
-            runCatching { context.startActivity(intent) }
-        }
+        state = state,
+        onAction = viewModel::onAction
     )
 }
 
 @Composable
 fun MusicLibraryScreen(
-    uiState: MusicLibraryUiState,
-    onFilterSelected: (MusicLibraryFilter) -> Unit,
-    onRetry: () -> Unit,
-    onLoadMore: () -> Unit,
-    onFavoriteToggle: (MusicRecommendation) -> Unit,
-    onDeleteRequested: (MusicRecommendation) -> Unit,
-    onDeleteDismissed: () -> Unit,
-    onDeleteConfirmed: () -> Unit,
-    onRecommendationClick: () -> Unit,
-    onOpenSearch: (String) -> Unit,
+    state: State,
+    onAction: (Action) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    uiState.deleteConfirmation?.let { recommendation ->
+    state.deleteConfirmation?.let { recommendation ->
         DeleteRecommendationDialog(
             recommendation = recommendation,
-            isDeleting = uiState.pendingDeleteId == recommendation.recommendationId,
-            onDismiss = onDeleteDismissed,
-            onConfirm = onDeleteConfirmed
+            isDeleting = state.pendingDeleteId == recommendation.recommendationId,
+            onDismiss = { onAction(Action.DismissDelete) },
+            onConfirm = { onAction(Action.ConfirmDelete) }
         )
     }
 
@@ -124,10 +124,9 @@ fun MusicLibraryScreen(
             ) {
                 MusicLibraryFilter.entries.forEach { filter ->
                     FilterChip(
-                        selected = uiState.filter == filter,
-                        enabled = uiState.pendingFavoriteId == null &&
-                            uiState.pendingDeleteId == null,
-                        onClick = { onFilterSelected(filter) },
+                        selected = state.filter == filter,
+                        enabled = !state.isMutating && state.deleteConfirmation == null,
+                        onClick = { onAction(Action.SelectFilter(filter)) },
                         label = {
                             Text(
                                 stringResource(
@@ -144,16 +143,16 @@ fun MusicLibraryScreen(
             }
         }
 
-        if (!uiState.isLoading && uiState.error == null) {
+        if (!state.isLoading && state.error == null) {
             item {
                 Text(
                     text = stringResource(
-                        if (uiState.favoriteOnly) {
+                        if (state.favoriteOnly) {
                             R.string.music_library_favorite_count
                         } else {
                             R.string.music_library_total_count
                         },
-                        uiState.totalElements
+                        state.totalElements
                     ),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -161,7 +160,7 @@ fun MusicLibraryScreen(
             }
         }
 
-        if (uiState.isLoading) {
+        if (state.isLoading) {
             item {
                 Box(
                     modifier = Modifier
@@ -173,45 +172,48 @@ fun MusicLibraryScreen(
                 }
             }
         } else {
-            uiState.error?.let { error ->
+            state.error?.let { error ->
                 item {
-                    MusicLibraryErrorCard(error = error, onRetry = onRetry)
+                    MusicLibraryErrorCard(
+                        error = error,
+                        onRetry = { onAction(Action.Refresh) }
+                    )
                 }
             }
 
-            if (uiState.recommendations.isEmpty() && uiState.error == null) {
+            if (state.recommendations.isEmpty() && state.error == null) {
                 item {
                     EmptyMusicLibrary(
-                        favoriteOnly = uiState.favoriteOnly,
-                        onRecommendationClick = onRecommendationClick
+                        favoriteOnly = state.favoriteOnly,
+                        onRecommendationClick = { onAction(Action.RequestRecommendation) }
                     )
                 }
             }
 
             items(
-                items = uiState.recommendations,
+                items = state.recommendations,
                 key = MusicRecommendation::recommendationId
             ) { recommendation ->
                 MusicRecommendationHistoryCard(
                     recommendation = recommendation,
-                    isUpdatingFavorite = uiState.pendingFavoriteId ==
+                    isUpdatingFavorite = state.pendingFavoriteId ==
                         recommendation.recommendationId,
-                    isDeleting = uiState.pendingDeleteId == recommendation.recommendationId,
-                    onOpenSearch = { onOpenSearch(recommendation.track.searchQuery) },
-                    onFavoriteToggle = { onFavoriteToggle(recommendation) },
-                    onDelete = { onDeleteRequested(recommendation) }
+                    canModify = state.canModify && state.deleteConfirmation == null,
+                    onOpenSearch = { onAction(Action.OpenYouTube(recommendation.recommendationId)) },
+                    onFavoriteToggle = { onAction(Action.ToggleFavorite(recommendation.recommendationId)) },
+                    onDelete = { onAction(Action.RequestDelete(recommendation.recommendationId)) }
                 )
             }
 
-            if (uiState.hasNext || uiState.isLoadingMore) {
+            if (state.hasNext || state.isLoadingMore) {
                 item {
                     OutlinedButton(
-                        onClick = onLoadMore,
-                        enabled = !uiState.isLoadingMore,
+                        onClick = { onAction(Action.LoadMore) },
+                        enabled = state.canModify && state.deleteConfirmation == null,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp)
                     ) {
-                        if (uiState.isLoadingMore) {
+                        if (state.isLoadingMore) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(20.dp),
                                 strokeWidth = 2.dp
@@ -234,7 +236,7 @@ fun MusicLibraryScreen(
 private fun MusicRecommendationHistoryCard(
     recommendation: MusicRecommendation,
     isUpdatingFavorite: Boolean,
-    isDeleting: Boolean,
+    canModify: Boolean,
     onOpenSearch: () -> Unit,
     onFavoriteToggle: () -> Unit,
     onDelete: () -> Unit
@@ -286,7 +288,7 @@ private fun MusicRecommendationHistoryCard(
                 }
                 IconButton(
                     onClick = onFavoriteToggle,
-                    enabled = !isUpdatingFavorite && !isDeleting
+                    enabled = canModify
                 ) {
                     if (isUpdatingFavorite) {
                         CircularProgressIndicator(
@@ -319,7 +321,7 @@ private fun MusicRecommendationHistoryCard(
                 }
                 IconButton(
                     onClick = onDelete,
-                    enabled = !isDeleting && !isUpdatingFavorite
+                    enabled = canModify
                 ) {
                     Icon(
                         painter = painterResource(DesignSystemR.drawable.ic_delete),
@@ -377,7 +379,6 @@ private fun MusicRecommendationHistoryCard(
         }
     }
 }
-
 @Composable
 private fun RecommendationMetadata(text: String, modifier: Modifier = Modifier) {
     Surface(
@@ -523,8 +524,3 @@ private fun DeleteRecommendationDialog(
         }
     )
 }
-
-private fun String.toYoutubeSearchUri(): Uri = Uri.parse("https://www.youtube.com/results")
-    .buildUpon()
-    .appendQueryParameter("search_query", this)
-    .build()

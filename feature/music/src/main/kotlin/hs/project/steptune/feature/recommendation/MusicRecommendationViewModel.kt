@@ -15,13 +15,19 @@ import hs.project.steptune.domain.usecase.GenerateMusicRecommendationUseCase
 import hs.project.steptune.domain.usecase.ObserveUserPreferencesUseCase
 import hs.project.steptune.domain.usecase.UpdateMusicRecommendationFavoriteUseCase
 import hs.project.steptune.core.ui.musicpreference.MusicPreferenceSelectionUiState
+import hs.project.steptune.feature.recommendation.MusicRecommendationContract.Action
+import hs.project.steptune.feature.recommendation.MusicRecommendationContract.Effect
+import hs.project.steptune.feature.recommendation.MusicRecommendationContract.State
 import java.io.IOException
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -31,16 +37,42 @@ class MusicRecommendationViewModel @Inject constructor(
     private val generateMusicRecommendationUseCase: GenerateMusicRecommendationUseCase,
     private val updateFavoriteUseCase: UpdateMusicRecommendationFavoriteUseCase
 ) : ViewModel() {
-    private val _uiState = MutableStateFlow(MusicRecommendationUiState())
-    val uiState: StateFlow<MusicRecommendationUiState> = _uiState.asStateFlow()
+    private val _state = MutableStateFlow(State())
+    val state: StateFlow<State> = _state.asStateFlow()
+    private val effectChannel = Channel<Effect>(Channel.BUFFERED)
+    val effects: Flow<Effect> = effectChannel.receiveAsFlow()
 
     init {
         loadPreferences()
     }
 
-    fun onGenreToggled(genre: MusicGenre) {
-        if (!_uiState.value.canGenerate) return
-        _uiState.update { current ->
+    fun onAction(action: Action) {
+        when (action) {
+            is Action.ToggleGenre -> toggleGenre(action.genre)
+            is Action.ToggleMood -> toggleMood(action.mood)
+            is Action.SelectDuration -> selectDuration(action.minutes)
+            Action.RetryPreferences -> {
+                if (!_state.value.isLoadingPreferences && !_state.value.hasLoadedPreferences) {
+                    loadPreferences()
+                }
+            }
+            Action.Generate -> generateRecommendation()
+            Action.RequestAnother -> requestAnotherRecommendation()
+            Action.ToggleFavorite -> toggleFavorite()
+            Action.OpenYouTube -> _state.value.recommendation?.let {
+                emitEffect(Effect.OpenYouTube(it.track.searchQuery))
+            }
+            Action.Back -> emitEffect(Effect.NavigateBack)
+        }
+    }
+
+    private fun emitEffect(effect: Effect) {
+        viewModelScope.launch { effectChannel.send(effect) }
+    }
+
+    private fun toggleGenre(genre: MusicGenre) {
+        if (!_state.value.canGenerate) return
+        _state.update { current ->
             current.copy(
                 preferences = current.preferences.copy(
                     selectedGenres = MusicPreferenceRules.toggleGenre(
@@ -53,9 +85,9 @@ class MusicRecommendationViewModel @Inject constructor(
         }
     }
 
-    fun onMoodToggled(mood: MusicMood) {
-        if (!_uiState.value.canGenerate) return
-        _uiState.update { current ->
+    private fun toggleMood(mood: MusicMood) {
+        if (!_state.value.canGenerate) return
+        _state.update { current ->
             current.copy(
                 preferences = current.preferences.copy(
                     selectedMoods = MusicPreferenceRules.toggleMood(
@@ -68,17 +100,17 @@ class MusicRecommendationViewModel @Inject constructor(
         }
     }
 
-    fun onDurationSelected(durationMinutes: Int) {
-        if (!_uiState.value.canGenerate || durationMinutes !in MusicRecommendationUiState.DURATION_OPTIONS) {
+    private fun selectDuration(durationMinutes: Int) {
+        if (!_state.value.canGenerate || durationMinutes !in State.DURATION_OPTIONS) {
             return
         }
-        _uiState.update { it.copy(durationMinutes = durationMinutes, error = null) }
+        _state.update { it.copy(durationMinutes = durationMinutes, error = null) }
     }
 
-    fun generateRecommendation() {
-        val current = _uiState.value
-        if (!current.canGenerate) return
-        _uiState.update { it.copy(isGenerating = true, error = null) }
+    private fun generateRecommendation() {
+        val current = _state.value
+        if (!current.canGenerate || current.recommendation != null) return
+        _state.update { it.copy(isGenerating = true, error = null) }
         viewModelScope.launch {
             try {
                 val result = generateMusicRecommendationUseCase(
@@ -86,7 +118,7 @@ class MusicRecommendationViewModel @Inject constructor(
                     preferredGenres = current.preferences.selectedGenres,
                     durationMinutes = current.durationMinutes
                 )
-                _uiState.update {
+                _state.update {
                     it.copy(
                         isGenerating = false,
                         recommendation = result,
@@ -96,7 +128,7 @@ class MusicRecommendationViewModel @Inject constructor(
             } catch (exception: CancellationException) {
                 throw exception
             } catch (exception: Exception) {
-                _uiState.update {
+                _state.update {
                     it.copy(
                         isGenerating = false,
                         error = exception.toUiError()
@@ -106,22 +138,22 @@ class MusicRecommendationViewModel @Inject constructor(
         }
     }
 
-    fun requestAnotherRecommendation() {
-        if (_uiState.value.isGenerating || _uiState.value.isUpdatingFavorite) return
-        _uiState.update { it.copy(recommendation = null, error = null) }
+    private fun requestAnotherRecommendation() {
+        if (_state.value.isGenerating || _state.value.isUpdatingFavorite) return
+        _state.update { it.copy(recommendation = null, error = null) }
     }
 
-    fun toggleFavorite() {
-        val recommendation = _uiState.value.recommendation ?: return
-        if (_uiState.value.isUpdatingFavorite) return
-        _uiState.update { it.copy(isUpdatingFavorite = true, error = null) }
+    private fun toggleFavorite() {
+        val recommendation = _state.value.recommendation ?: return
+        if (_state.value.isUpdatingFavorite || _state.value.isGenerating) return
+        _state.update { it.copy(isUpdatingFavorite = true, error = null) }
         viewModelScope.launch {
             try {
                 val updated = updateFavoriteUseCase(
                     recommendationId = recommendation.recommendationId,
                     favorite = !recommendation.favorite
                 )
-                _uiState.update {
+                _state.update {
                     it.copy(
                         isUpdatingFavorite = false,
                         recommendation = updated,
@@ -131,7 +163,7 @@ class MusicRecommendationViewModel @Inject constructor(
             } catch (exception: CancellationException) {
                 throw exception
             } catch (exception: Exception) {
-                _uiState.update {
+                _state.update {
                     it.copy(
                         isUpdatingFavorite = false,
                         error = if (exception is IOException) {
@@ -146,16 +178,26 @@ class MusicRecommendationViewModel @Inject constructor(
     }
 
     private fun loadPreferences() {
+        _state.update { it.copy(isLoadingPreferences = true, error = null) }
         viewModelScope.launch {
-            val preferences = observeUserPreferencesUseCase().first()
-            _uiState.update { current ->
-                current.copy(
-                    preferences = MusicPreferenceSelectionUiState(
-                        selectedGenres = preferences.preferredGenres,
-                        selectedMoods = preferences.preferredMoods
-                    ),
-                    isLoadingPreferences = false
-                )
+            try {
+                val preferences = observeUserPreferencesUseCase().first()
+                _state.update { current ->
+                    current.copy(
+                        preferences = MusicPreferenceSelectionUiState(
+                            selectedGenres = preferences.preferredGenres,
+                            selectedMoods = preferences.preferredMoods
+                        ),
+                        isLoadingPreferences = false,
+                        hasLoadedPreferences = true
+                    )
+                }
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (exception: Exception) {
+                _state.update {
+                    it.copy(isLoadingPreferences = false, error = MusicRecommendationError.REQUEST_FAILED)
+                }
             }
         }
     }

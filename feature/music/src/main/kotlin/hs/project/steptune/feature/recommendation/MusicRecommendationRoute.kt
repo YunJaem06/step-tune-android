@@ -1,7 +1,5 @@
 package hs.project.steptune.feature.recommendation
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,7 +25,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -36,7 +37,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import hs.project.steptune.feature.music.R
 import hs.project.steptune.core.designsystem.R as DesignSystemR
 import hs.project.steptune.domain.model.MusicGenre
@@ -44,46 +48,46 @@ import hs.project.steptune.domain.model.MusicMood
 import hs.project.steptune.domain.model.MusicRecommendation
 import hs.project.steptune.domain.model.RecommendationActivityLevel
 import hs.project.steptune.core.ui.musicpreference.MusicPreferenceSelector
+import hs.project.steptune.feature.music.ui.openYouTubeSearch
+import hs.project.steptune.feature.recommendation.MusicRecommendationContract.Action
+import hs.project.steptune.feature.recommendation.MusicRecommendationContract.Effect
+import hs.project.steptune.feature.recommendation.MusicRecommendationContract.State
 
 @Composable
 fun MusicRecommendationRoute(
     onBack: () -> Unit
 ) {
     val viewModel: MusicRecommendationViewModel = hiltViewModel()
-    val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
+    val state = viewModel.state.collectAsStateWithLifecycle().value
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val currentOnBack = rememberUpdatedState(onBack)
+
+    LaunchedEffect(viewModel, lifecycleOwner, context) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            viewModel.effects.collect { effect ->
+                when (effect) {
+                    Effect.NavigateBack -> currentOnBack.value()
+                    is Effect.OpenYouTube -> context.openYouTubeSearch(effect.searchQuery)
+                }
+            }
+        }
+    }
 
     MusicRecommendationScreen(
-        uiState = uiState,
-        onBack = onBack,
-        onGenreToggled = viewModel::onGenreToggled,
-        onMoodToggled = viewModel::onMoodToggled,
-        onDurationSelected = viewModel::onDurationSelected,
-        onGenerate = viewModel::generateRecommendation,
-        onRequestAnother = viewModel::requestAnotherRecommendation,
-        onFavoriteToggle = viewModel::toggleFavorite,
-        onOpenSearch = { searchQuery ->
-            val intent = Intent(Intent.ACTION_VIEW, searchQuery.toYoutubeSearchUri())
-            runCatching { context.startActivity(intent) }
-        }
+        state = state,
+        onAction = viewModel::onAction
     )
 }
 
 @Composable
 fun MusicRecommendationScreen(
-    uiState: MusicRecommendationUiState,
-    onBack: () -> Unit,
-    onGenreToggled: (MusicGenre) -> Unit,
-    onMoodToggled: (MusicMood) -> Unit,
-    onDurationSelected: (Int) -> Unit,
-    onGenerate: () -> Unit,
-    onRequestAnother: () -> Unit,
-    onFavoriteToggle: () -> Unit,
-    onOpenSearch: (String) -> Unit,
+    state: State,
+    onAction: (Action) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxSize()) {
-        RecommendationTopBar(onBack = onBack)
+        RecommendationTopBar(onBack = { onAction(Action.Back) })
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -91,22 +95,23 @@ fun MusicRecommendationScreen(
                 .padding(horizontal = 20.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
-            if (uiState.recommendation == null) {
+            if (state.recommendation == null) {
                 RecommendationForm(
-                    uiState = uiState,
-                    onGenreToggled = onGenreToggled,
-                    onMoodToggled = onMoodToggled,
-                    onDurationSelected = onDurationSelected,
-                    onGenerate = onGenerate
+                    uiState = state,
+                    onGenreToggled = { onAction(Action.ToggleGenre(it)) },
+                    onMoodToggled = { onAction(Action.ToggleMood(it)) },
+                    onDurationSelected = { onAction(Action.SelectDuration(it)) },
+                    onGenerate = { onAction(Action.Generate) },
+                    onRetryPreferences = { onAction(Action.RetryPreferences) }
                 )
             } else {
                 RecommendationResult(
-                    recommendation = uiState.recommendation,
-                    isUpdatingFavorite = uiState.isUpdatingFavorite,
-                    error = uiState.error,
-                    onOpenSearch = onOpenSearch,
-                    onFavoriteToggle = onFavoriteToggle,
-                    onRequestAnother = onRequestAnother
+                    recommendation = state.recommendation,
+                    isUpdatingFavorite = state.isUpdatingFavorite,
+                    error = state.error,
+                    onOpenSearch = { onAction(Action.OpenYouTube) },
+                    onFavoriteToggle = { onAction(Action.ToggleFavorite) },
+                    onRequestAnother = { onAction(Action.RequestAnother) }
                 )
             }
         }
@@ -138,11 +143,12 @@ private fun RecommendationTopBar(onBack: () -> Unit) {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun RecommendationForm(
-    uiState: MusicRecommendationUiState,
+    uiState: State,
     onGenreToggled: (MusicGenre) -> Unit,
     onMoodToggled: (MusicMood) -> Unit,
     onDurationSelected: (Int) -> Unit,
-    onGenerate: () -> Unit
+    onGenerate: () -> Unit,
+    onRetryPreferences: () -> Unit
 ) {
     Text(
         text = stringResource(R.string.recommendation_form_title),
@@ -174,7 +180,7 @@ private fun RecommendationForm(
                 onGenreToggled = onGenreToggled,
                 onMoodToggled = onMoodToggled,
                 modifier = Modifier.padding(20.dp),
-                enabled = !uiState.isGenerating
+                enabled = uiState.canGenerate
             )
         }
     }
@@ -189,10 +195,10 @@ private fun RecommendationForm(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            MusicRecommendationUiState.DURATION_OPTIONS.forEach { duration ->
+            State.DURATION_OPTIONS.forEach { duration ->
                 FilterChip(
                     selected = uiState.durationMinutes == duration,
-                    enabled = !uiState.isGenerating,
+                    enabled = uiState.canGenerate,
                     onClick = { onDurationSelected(duration) },
                     label = {
                         Text(stringResource(R.string.recommendation_minutes_format, duration))
@@ -203,6 +209,11 @@ private fun RecommendationForm(
     }
 
     uiState.error?.let { error -> RecommendationErrorCard(error) }
+    if (!uiState.isLoadingPreferences && !uiState.hasLoadedPreferences) {
+        TextButton(onClick = onRetryPreferences) {
+            Text(stringResource(DesignSystemR.string.common_retry))
+        }
+    }
 
     Button(
         onClick = onGenerate,
@@ -258,7 +269,7 @@ private fun RecommendationResult(
     recommendation: MusicRecommendation,
     isUpdatingFavorite: Boolean,
     error: MusicRecommendationError?,
-    onOpenSearch: (String) -> Unit,
+    onOpenSearch: () -> Unit,
     onFavoriteToggle: () -> Unit,
     onRequestAnother: () -> Unit
 ) {
@@ -394,7 +405,7 @@ private fun RecommendationResult(
     }
 
     Button(
-        onClick = { onOpenSearch(recommendation.track.searchQuery) },
+        onClick = onOpenSearch,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp)
     ) {
@@ -454,6 +465,7 @@ private fun RecommendationResult(
 
     OutlinedButton(
         onClick = onRequestAnother,
+        enabled = !isUpdatingFavorite,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp)
     ) {
@@ -480,11 +492,6 @@ private fun ResultInfoRow(label: String, value: String) {
         )
     }
 }
-
-private fun String.toYoutubeSearchUri(): Uri = Uri.parse("https://www.youtube.com/results")
-    .buildUpon()
-    .appendQueryParameter("search_query", this)
-    .build()
 
 private val MusicRecommendationError.messageResource: Int
     get() = when (this) {
