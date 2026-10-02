@@ -52,6 +52,18 @@ internal object StepCountCalculator {
             .coerceIn(previousState.offsetSteps.toLong(), Int.MAX_VALUE.toLong())
             .toInt()
 
+        // A restarted sensor can still be above the old baseline; saved steps must not decrease.
+        if (calculatedSteps < safeExistingSteps) {
+            return StepCountCalculation(
+                steps = safeExistingSteps,
+                trackingState = StepTrackingState(
+                    trackingDate = date,
+                    baselineSensorSteps = safeRawSensorSteps,
+                    offsetSteps = safeExistingSteps
+                )
+            )
+        }
+
         return StepCountCalculation(
             steps = calculatedSteps,
             trackingState = previousState

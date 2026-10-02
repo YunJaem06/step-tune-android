@@ -129,6 +129,7 @@ class StepTrackingService : Service(), SensorEventListener {
             try {
                 currentPreferences = settingsRepository.observePreferences().first()
                 currentTrackingState = trackingStateDataSource.state.first()
+                lastSavedSteps = pedometerRepository.getDailyProgress(DateFormatter.today())?.steps ?: 0
                 dependencyStateReady.complete(Unit)
             } catch (error: Exception) {
                 dependencyStateReady.completeExceptionally(error)
